@@ -9,18 +9,13 @@ struct Dvar {
 }
 
 #[derive(Debug)]
-struct Coeff {
-    id : usize,
-    coeff : i32,
-}
-
-#[derive(Debug)]
 struct Sorter {
     input : Vec<usize>,
     output : Vec<usize>,
+    numcarr : usize,
 }
 
-pub fn solqubo(input:Vec<Vec<i32>>) -> i32 {
+pub fn solqubo(input:Vec<Vec<i32>>) -> Result<i32,String> {
     let n = input.len();
     let mut N = Vec::<i32>::new();
     let mut p = 0;
@@ -66,37 +61,25 @@ pub fn solqubo(input:Vec<Vec<i32>>) -> i32 {
         }
     }
     
-    // ソート前の添字を保存しつつソート
-    let mut M = Vec::<Coeff>::new();
+    // M=abs(N)
+    let mut M = Vec::<i32>::new();
     for i in 0..(N.len()) {
-        M.push(Coeff{id:i, coeff:N[i].abs()});
+        M.push(N[i].abs());
     }
-
-    //M.sort_by({|i,j| i.coeff.cmp(&j.coeff)});
-    //println!("M = {:?}", M);
     
-    /*
-    let mut M_ : Vec<i32> = M.iter().map(|e| e.coeff).collect();
-    let mut sumM = M_.clone();
-
-    for i in 0..(M_.len()) {
-        if i == 0 {
-            continue;
-        } else {
-            sumM[i] = sumM[i-1] + M_[i];
-        }
-    }
-    */
-
     //係数をBaseで素因数分解
     let Base = 3;
     let mut num_b = Vec::<Vec<i32>>::new();
-    for i in 0..(M.len()) {
+    for i in 0..(N.len()) {
         let mut tmp = Vec::<i32>::new();
-        let mut m = M[i].coeff;
-        while m > 0 {
-            tmp.push(m % Base);
-            m = m / Base;
+        let mut m = M[i];
+        if m == 0 {
+            tmp.push(0);
+        } else {
+            while m > 0 {
+                tmp.push(m % Base);
+                m = m / Base;
+           }
         }
         num_b.push(tmp);
     }
@@ -105,12 +88,14 @@ pub fn solqubo(input:Vec<Vec<i32>>) -> i32 {
     //sorter作成
     let mut sorter_lst = Vec::<Sorter>::new();
     let mut carr = Vec::<usize>::new();
-
     let mut vargen = N.len() + n + 1;
     let mut g = f;
+    let mut satmodel = Vec::<Lit>::new();
 
     for i in 0..(num_b.iter().fold(0, |max, a| if max < a.len() {a.len()} else {max})) {
+        let cn = carr.len();
         let mut inp = carr;
+
         //let mut oup = Vec::<usize>::new();
         for j in 0..(num_b.len()) {
             if num_b[j].len() > i {
@@ -175,141 +160,163 @@ pub fn solqubo(input:Vec<Vec<i32>>) -> i32 {
         for k in 0..(j / (Base as usize)) {
             carr.push(oup[(k + 1) * (Base as usize) - 1]);
         }
-        sorter_lst.push(Sorter {input:inp, output:oup});
+        sorter_lst.push(Sorter {input:inp, output:oup, numcarr:cn});
     }
     println!("{:?}",sorter_lst);
     println!("{:?}",g);
 
     //////////ループ開始
-    // sorterの出力の上から順に0を制約として入れて、satを解く
-    let mut zeropos = Vec::<usize>::new();
-    for i in 0..(sorter_lst.len()) {
-        zeropos.push(0);
-    }
-    
-    let mut pos = sorter_lst.len() - 1;
+    // sorter 1個目の出力を上から順に0を制約として入れて、satを解く
     use varisat::solver::Solver;
-    let mut res = false;
 
+    let mut zerop = 0;
     let mut solver = Solver::new();
+    let mut res;
     solver.add_formula(&g);
-    solver.add_formula(&mk_0cons(&sorter_lst, &zeropos));
+    solver.add_formula(&mk_0cons(&sorter_lst, zerop));
     match solver.solve() {
         Ok(result) => 
             res = result,
-        Err(_) => (),
+        Err(msg) => return Err(msg.to_string()),
+    }
+
+    while res && zerop < sorter_lst[sorter_lst.len() - 1].output.len() {
+        zerop += 1;
+        solver = Solver::new();
+        solver.add_formula(&g);
+        solver.add_formula(&mk_0cons(&sorter_lst, zerop));
+        match solver.solve() {
+            Ok(result) => 
+                res = result,
+            Err(msg) => return Err(msg.to_string()),
+        }
     }
     
-    while !(pos == 0 && !res) && !(pos == 0 && zeropos[pos] == sorter_lst[pos].output.len()) {
+    if !res {zerop -= 1;}
+    
+    println!("zerop {}", zerop);
+    let mut vg = 0;
 
-        println!("-----");
-        //println!("sorter_lst {:?}",sorter_lst);
-        println!("zeropos {:?}", zeropos);
-        println!("{:?}",solver.model());
-
-        if res {
-            println!("sat");
-        } else {
-            println!("unsat");
+    //sorter 2個目以降
+    let mut zeropos = Vec::<Option<usize>>::new();
+    for i in 1..(sorter_lst.len()) {
+        if sorter_lst[i].output.len() == 0 {
+            zeropos.push(None);
+            continue;
         }
-
-        if !res {
-            decnum(& sorter_lst, &mut zeropos, &mut pos, Base as usize);
+        for j in 0..Base {
+            //println!("iter {}",j);
+            vg = vargen;
             solver = Solver::new();
             solver.add_formula(&g);
-            //println!("{:?}",h);
-            solver.add_formula(&mk_0cons(&sorter_lst, &zeropos));
-            match solver.solve() {
-                Ok(result) => 
-                    res = result,
-                Err(_) => (),
-            }
-                
-        } else {
-            nexnum(&sorter_lst, &mut zeropos, &mut pos, Base as usize);
-
-            solver = Solver::new();
-            solver.add_formula(&g);
-            //println!("{:?}",h);
-            solver.add_formula(&mk_0cons(&sorter_lst, &zeropos));
-            match solver.solve() {
-                Ok(result) => 
-                    res = result,
-                Err(_) => (),
+            solver.add_formula(&mk_0cons(&sorter_lst, zerop));
+            for k in 0..(zeropos.len()) {
+                match zeropos[k] {
+                    Some(mk) => {
+                        solver.add_formula(
+                        &mk_0cons_mod(&sorter_lst, sorter_lst.len() - 1 - 1 - k,
+                        mk as usize, Base as usize, &mut vg));
+                    },
+                    None => continue,
+                }
             }
             
+            solver.add_formula(&mk_0cons_mod(&sorter_lst, sorter_lst.len() - 1 - i, 
+                j as usize, Base as usize, &mut vg));
+            
+            match solver.solve() {
+                Ok(result) => 
+                    res = result,
+                Err(msg) => return Err(msg.to_string()),
+            }
+            if res {
+                zeropos.push(Some(j as usize));
+                break;
+            }
         }
-    }
-    
-    println!("-----");
-    println!("zeropos {:?}", zeropos);
-    if res {
-        println!("sat");
-    } else {
-        println!("unsat");
+        
     }
 
-    if !res {
-        zeropos[pos]-=1;
-    }
+    satmodel=solver.model().unwrap();
     
     println!("-----result-----");
+    println!("N = {:?}",N);
     println!("sorter_lst {:?}",sorter_lst);
-    println!("zeropos {:?}", zeropos);
-    //println!("{:?}",solver.model());
-
+    println!("zeropos {} {:?}",sorter_lst[sorter_lst.len() - 1].output.len() - zerop, zeropos);
+    println!("model {:?}",satmodel);
+        
     let mut q = 0;
-    for i in 0..(zeropos.len()) {
-        let j = i as u32;
-        q = q + (((sorter_lst[i].output.len() - zeropos[i]) as i32) % Base) * Base.pow(j);
+    for i in n..(n + M.len()) {
+        println!("{:?}",satmodel[i]);
+        if satmodel[i] == Lit::from_dimacs((i + 1) as isize) {
+            q = q + M[i-n];
+        } else {
+
+        }
+        //q = q + ((sorter_lst[i].output.len() - zeropos[i]) as i32) * Base.pow(j);
         //println!("{}",q);
     }
     //println!("sorter_lst {:?}",sorter_lst);
     println!("min val, q, p = {} {} {}",q-p, q, p);
-    return q-p;
+    return Ok(q-p);
 }
 
-//satのあとに次に調べる制約を指定
-fn nexnum(stlst: & Vec<Sorter>, zeropos : &mut Vec<usize>, pos: &mut usize, Base : usize) {
-    if zeropos[*pos] < stlst[*pos].output.len() {
-        zeropos[*pos]+=1;
-    } else {
-        *pos-=1;
-        while stlst[*pos].output.len() == 0 {
-            *pos-=1;
-        }
-        if stlst[*pos].output.len() >= Base {
-            zeropos[*pos] = stlst[*pos].output.len() - ((Base - 1) as usize);
-        } else {
-            zeropos[*pos]+=1;
-        }
-    }
-}
-
-//unsatのあとに次に調べる制約を指定
-fn decnum(stlst: & Vec<Sorter>, zeropos : &mut Vec<usize>, pos: &mut usize, Base : usize) {
-    zeropos[*pos]-=1;
-    *pos-=1;
-    while stlst[*pos].output.len() == 0 {
-        *pos-=1;
-    }
-    if stlst[*pos].output.len() >= Base {
-        zeropos[*pos] = stlst[*pos].output.len() - ((Base - 1) as usize);
-    } else {
-        zeropos[*pos]+=1;
-    }
-}
-
-fn mk_0cons(stlst:& Vec<Sorter>, zeropos:& Vec<usize>) -> CnfFormula {
+fn mk_0cons(stlst:& Vec<Sorter>, zeropos:usize) -> CnfFormula {
     let mut h = CnfFormula::new();
-    for i in 0..zeropos.len() {
-        for j in 0..zeropos[i] {
-            let k = stlst[i].output.len() - j - 1;
-            h.add_clause(&[!Lit::from_dimacs(stlst[i].output[k] as isize)]);
-            //println!("{}", sorter_lst[i].output[k]);
-        }
+    for j in 0..zeropos {
+        let k = stlst[stlst.len() - 1].output.len() - j - 1;
+        h.add_clause(&[!Lit::from_dimacs(stlst[stlst.len() - 1].output[k] as isize)]);
+        //println!("{}", sorter_lst[i].output[k]);
     }
     //println!("0 assigns {:?}",h);
+    return h;
+}
+
+fn mk_0cons_mod(stlst:& Vec<Sorter>, pos: usize, l: usize, Base: usize, vargen: &mut usize) -> CnfFormula {
+    let mut h = CnfFormula::new();
+    let mut j = l;
+    if l == 0 {
+        
+        let mut vl = Vec::<Lit>::new();
+        vl.push(Lit::from_dimacs(-(stlst[pos].output[0] as isize)));
+        j += Base;
+        while j < stlst[pos].output.len() {
+            let k1 = j;
+            let k0 = j - 1;
+            let v1 = stlst[pos].output[k1] as isize;
+            let v0 = stlst[pos].output[k0] as isize;
+            let o = (*vargen) as isize;
+            *vargen += 1;
+            vl.push(Lit::from_dimacs(o));
+            //v0 = true, v1 = false,
+            //o = !v1 and v0
+            h.add_clause(&[Lit::from_dimacs(v1), !Lit::from_dimacs(v0), Lit::from_dimacs(o)]);
+            h.add_clause(&[!Lit::from_dimacs(v1), !Lit::from_dimacs(o)]);
+            h.add_clause(&[Lit::from_dimacs(v0), !Lit::from_dimacs(o)]);
+            j += Base;
+        }
+        h.add_clause(&vl);
+    } else {
+        let mut vl = Vec::<Lit>::new();
+        while j < stlst[pos].output.len() {
+            let k1 = j;
+            let k0 = j - 1;
+            let v1 = stlst[pos].output[k1] as isize;
+            let v0 = stlst[pos].output[k0] as isize;
+            let o = (*vargen) as isize;
+            *vargen += 1;
+            vl.push(Lit::from_dimacs(o));
+            //v0 = true, v1 = false,
+            //o = !v1 and v0
+            h.add_clause(&[Lit::from_dimacs(v1), !Lit::from_dimacs(v0), Lit::from_dimacs(o)]);
+            h.add_clause(&[!Lit::from_dimacs(v1), !Lit::from_dimacs(o)]);
+            h.add_clause(&[Lit::from_dimacs(v0), !Lit::from_dimacs(o)]);
+            j += Base;
+        }
+        h.add_clause(&vl);
+        
+    }
+    println!("h {:?}", h);
     return h;
 }
 
