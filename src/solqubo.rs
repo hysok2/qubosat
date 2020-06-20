@@ -68,7 +68,7 @@ pub fn solqubo(input:Vec<Vec<i32>>) -> Result<i32,String> {
     }
     
     //係数をBaseで素因数分解
-    let Base = 3;
+    let Base = 4;
     let mut num_b = Vec::<Vec<i32>>::new();
     for i in 0..(N.len()) {
         let mut tmp = Vec::<i32>::new();
@@ -295,6 +295,7 @@ fn mk_0cons_mod(stlst:& Vec<Sorter>, pos: usize, l: usize, Base: usize, vargen: 
             h.add_clause(&[Lit::from_dimacs(v0), !Lit::from_dimacs(o)]);
             j += Base;
         }
+        if j == stlst[pos].output.len() {vl.push(Lit::from_dimacs(stlst[pos].output[j - 1] as isize));}
         h.add_clause(&vl);
     } else {
         let mut vl = Vec::<Lit>::new();
@@ -313,10 +314,11 @@ fn mk_0cons_mod(stlst:& Vec<Sorter>, pos: usize, l: usize, Base: usize, vargen: 
             h.add_clause(&[Lit::from_dimacs(v0), !Lit::from_dimacs(o)]);
             j += Base;
         }
+        if j == stlst[pos].output.len() {vl.push(Lit::from_dimacs(stlst[pos].output[j - 1] as isize));}
         h.add_clause(&vl);
         
     }
-    println!("h {:?}", h);
+    //println!("h {:?}", h);
     return h;
 }
 
