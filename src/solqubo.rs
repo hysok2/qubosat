@@ -68,7 +68,7 @@ pub fn solqubo(input:Vec<Vec<i32>>) -> Result<i32,String> {
     }
     
     //係数をBaseで素因数分解
-    let Base = 4;
+    let Base = 5;
     let mut num_b = Vec::<Vec<i32>>::new();
     for i in 0..(N.len()) {
         let mut tmp = Vec::<i32>::new();
@@ -192,7 +192,17 @@ pub fn solqubo(input:Vec<Vec<i32>>) -> Result<i32,String> {
         }
     }
     
-    if !res {zerop -= 1;}
+    if !res {
+        zerop -= 1;
+        solver = Solver::new();
+        solver.add_formula(&g);
+        solver.add_formula(&mk_0cons(&sorter_lst, zerop));
+        match solver.solve() {
+            Ok(result) => 
+                res = result,
+            Err(msg) => return Err(msg.to_string()),
+        }
+    }
     
     println!("zerop {}", zerop);
     let mut vg = 0;
