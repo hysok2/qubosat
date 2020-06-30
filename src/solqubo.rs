@@ -2,17 +2,11 @@ use varisat::dimacs::{DimacsParser, write_dimacs};
 use varisat::{CnfFormula, ExtendFormula};
 use varisat::{Var, Lit};
 
-#[derive(Eq, PartialEq, Debug, Clone, Copy)]
-struct Dvar {
-    i : usize,
-    k : i32,
-}
-
 #[derive(Debug)]
-struct Sorter {
-    input : Vec<usize>,
-    output : Vec<usize>,
-    numcarr : usize,
+pub struct Sorter {
+    pub input : Vec<usize>,
+    pub output : Vec<usize>,
+    pub numcarr : usize,
 }
 
 pub fn solqubo(input:Vec<Vec<i32>>) -> Result<i32,String> {
@@ -39,7 +33,7 @@ pub fn solqubo(input:Vec<Vec<i32>>) -> Result<i32,String> {
         }
     }
 
-    // pとvの関係をCNFで記述、Nの要素のminusを考慮
+    // QUBOの変数とPseudo boolean constraintsの変数の関係をCNFで記述、Nの要素のminusを考慮
     let mut f = CnfFormula::new();
     for i in 0..n {
         for j in 0..(i+1) {
@@ -87,92 +81,22 @@ pub fn solqubo(input:Vec<Vec<i32>>) -> Result<i32,String> {
 
     //sorter作成
     let mut sorter_lst = Vec::<Sorter>::new();
-    let mut carr = Vec::<usize>::new();
     let mut vargen = N.len() + n + 1;
-    let mut g = f;
-    let mut satmodel = Vec::<Lit>::new();
+    mk_sorterlst(&mut sorter_lst, & num_b, &mut f, Base as usize, n, &mut vargen);
 
-    for i in 0..(num_b.iter().fold(0, |max, a| if max < a.len() {a.len()} else {max})) {
-        let cn = carr.len();
-        let mut inp = carr;
-
-        //let mut oup = Vec::<usize>::new();
-        for j in 0..(num_b.len()) {
-            if num_b[j].len() > i {
-                for k in 0..(num_b[j][i]) {
-                    inp.push(j + n + 1);
-                }
-            }
-        }
-
-        let j = inp.len();
-        let mut ve = Vec::<(usize,usize)>::new();
-        mksorter(&mut ve, 0, j.next_power_of_two() - 1);
-        //println!("ve {:?}", ve);
-
-        let mut layer = inp.clone();
-        for k in j..(j.next_power_of_two()) {
-            layer.push(0);
-            //inp.push(0);
-        }
-        //println!("inp {:?}",inp);
-        for k in ve.iter() {
-            let in0 = (*k).0;
-            let in1 = (*k).1;
-
-            if layer[in0] == 0 && layer[in1] == 0 {
-                continue;
-            } else if layer[in0] == 0 {
-                layer[in0] = layer[in1];
-                layer[in1] = 0;
-            } else if layer[in1] == 0 {
-                continue;
-            } else {
-                let newo1 = vargen as isize;
-                vargen += 1;
-                let newo2 = vargen as isize;
-                vargen += 1;
-                let oldi1 = layer[in0] as isize;
-                let oldi2 = layer[in1] as isize;
-                // oldi1 and oldi2 = newo2
-                // oldi1 or oldi2 = newo1
-                g.add_clause(&[!Lit::from_dimacs(oldi1), !Lit::from_dimacs(oldi2), Lit::from_dimacs(newo2)]);
-                g.add_clause(&[Lit::from_dimacs(oldi1), !Lit::from_dimacs(newo2)]);
-                g.add_clause(&[Lit::from_dimacs(oldi2), !Lit::from_dimacs(newo2)]);
-
-                g.add_clause(&[Lit::from_dimacs(oldi1), Lit::from_dimacs(oldi2), !Lit::from_dimacs(newo1)]);
-                g.add_clause(&[!Lit::from_dimacs(oldi1), Lit::from_dimacs(newo1)]);
-                g.add_clause(&[!Lit::from_dimacs(oldi2), Lit::from_dimacs(newo1)]);
-
-                layer[in0]=newo1 as usize;
-                layer[in1]=newo2 as usize;
-            }
-            //println!("{:?}",layer);
-
-        }
-
-        let mut oup = Vec::<usize>::new();
-        for k in 0..(inp.len()) {
-            oup.push(layer[k]);
-        }
-
-        carr = Vec::<usize>::new();
-        for k in 0..(j / (Base as usize)) {
-            carr.push(oup[(k + 1) * (Base as usize) - 1]);
-        }
-        sorter_lst.push(Sorter {input:inp, output:oup, numcarr:cn});
-    }
     println!("{:?}",sorter_lst);
-    println!("{:?}",g);
+    println!("{:?}",f);
 
-    //////////ループ開始
+    //////////解探索開始
     // sorter 1個目の出力を上から順に0を制約として入れて、satを解く
     use varisat::solver::Solver;
 
     let mut zerop = 0;
     let mut solver = Solver::new();
     let mut res;
-    solver.add_formula(&g);
+    let mut satmodel = Vec::<Lit>::new();
+    
+    solver.add_formula(&f);
     solver.add_formula(&mk_0cons(&sorter_lst, zerop));
     match solver.solve() {
         Ok(result) => 
@@ -183,7 +107,7 @@ pub fn solqubo(input:Vec<Vec<i32>>) -> Result<i32,String> {
     while res && zerop < sorter_lst[sorter_lst.len() - 1].output.len() {
         zerop += 1;
         solver = Solver::new();
-        solver.add_formula(&g);
+        solver.add_formula(&f);
         solver.add_formula(&mk_0cons(&sorter_lst, zerop));
         match solver.solve() {
             Ok(result) => 
@@ -195,7 +119,7 @@ pub fn solqubo(input:Vec<Vec<i32>>) -> Result<i32,String> {
     if !res {
         zerop -= 1;
         solver = Solver::new();
-        solver.add_formula(&g);
+        solver.add_formula(&f);
         solver.add_formula(&mk_0cons(&sorter_lst, zerop));
         match solver.solve() {
             Ok(result) => 
@@ -218,7 +142,7 @@ pub fn solqubo(input:Vec<Vec<i32>>) -> Result<i32,String> {
             //println!("iter {}",j);
             vg = vargen;
             solver = Solver::new();
-            solver.add_formula(&g);
+            solver.add_formula(&f);
             solver.add_formula(&mk_0cons(&sorter_lst, zerop));
             for k in 0..(zeropos.len()) {
                 match zeropos[k] {
@@ -271,7 +195,84 @@ pub fn solqubo(input:Vec<Vec<i32>>) -> Result<i32,String> {
     return Ok(q-p);
 }
 
-fn mk_0cons(stlst:& Vec<Sorter>, zeropos:usize) -> CnfFormula {
+pub fn mk_sorterlst(sorter_lst: &mut Vec<Sorter>, num_b: &Vec<Vec<i32>>, 
+    g: &mut CnfFormula, Base: usize, n: usize, vargen: &mut usize) {
+
+    let mut carr = Vec::<usize>::new();
+
+    for i in 0..(num_b.iter().fold(0, |max, a| if max < a.len() {a.len()} else {max})) {
+        let cn = carr.len();
+        let mut inp = carr;
+
+        //let mut oup = Vec::<usize>::new();
+        for j in 0..(num_b.len()) {
+            if num_b[j].len() > i {
+                for k in 0..(num_b[j][i]) {
+                    inp.push(j + n + 1);
+                }
+            }
+        }
+
+        let j = inp.len();
+        let mut ve = Vec::<(usize,usize)>::new();
+        mksorter(&mut ve, 0, j.next_power_of_two() - 1);
+        //println!("ve {:?}", ve);
+
+        let mut layer = inp.clone();
+        for k in j..(j.next_power_of_two()) {
+            layer.push(0);
+            //inp.push(0);
+        }
+        //println!("inp {:?}",inp);
+        for k in ve.iter() {
+            let in0 = (*k).0;
+            let in1 = (*k).1;
+
+            if layer[in0] == 0 && layer[in1] == 0 {
+                continue;
+            } else if layer[in0] == 0 {
+                layer[in0] = layer[in1];
+                layer[in1] = 0;
+            } else if layer[in1] == 0 {
+                continue;
+            } else {
+                let newo1 = *vargen as isize;
+                *vargen += 1;
+                let newo2 = *vargen as isize;
+                *vargen += 1;
+                let oldi1 = layer[in0] as isize;
+                let oldi2 = layer[in1] as isize;
+                // oldi1 and oldi2 = newo2
+                // oldi1 or oldi2 = newo1
+                g.add_clause(&[!Lit::from_dimacs(oldi1), !Lit::from_dimacs(oldi2), Lit::from_dimacs(newo2)]);
+                g.add_clause(&[Lit::from_dimacs(oldi1), !Lit::from_dimacs(newo2)]);
+                g.add_clause(&[Lit::from_dimacs(oldi2), !Lit::from_dimacs(newo2)]);
+
+                g.add_clause(&[Lit::from_dimacs(oldi1), Lit::from_dimacs(oldi2), !Lit::from_dimacs(newo1)]);
+                g.add_clause(&[!Lit::from_dimacs(oldi1), Lit::from_dimacs(newo1)]);
+                g.add_clause(&[!Lit::from_dimacs(oldi2), Lit::from_dimacs(newo1)]);
+
+                layer[in0]=newo1 as usize;
+                layer[in1]=newo2 as usize;
+            }
+            //println!("{:?}",layer);
+
+        }
+
+        let mut oup = Vec::<usize>::new();
+        for k in 0..(inp.len()) {
+            oup.push(layer[k]);
+        }
+
+        carr = Vec::<usize>::new();
+        for k in 0..(j / (Base as usize)) {
+            carr.push(oup[(k + 1) * (Base as usize) - 1]);
+        }
+        sorter_lst.push(Sorter {input:inp, output:oup, numcarr:cn});
+    }
+}
+
+pub fn mk_0cons(stlst:& Vec<Sorter>, zeropos:usize) -> CnfFormula {
     let mut h = CnfFormula::new();
     for j in 0..zeropos {
         let k = stlst[stlst.len() - 1].output.len() - j - 1;
@@ -282,7 +283,7 @@ fn mk_0cons(stlst:& Vec<Sorter>, zeropos:usize) -> CnfFormula {
     return h;
 }
 
-fn mk_0cons_mod(stlst:& Vec<Sorter>, pos: usize, l: usize, Base: usize, vargen: &mut usize) -> CnfFormula {
+pub fn mk_0cons_mod(stlst:& Vec<Sorter>, pos: usize, l: usize, Base: usize, vargen: &mut usize) -> CnfFormula {
     let mut h = CnfFormula::new();
     let mut j = l;
     if l == 0 {
@@ -332,7 +333,7 @@ fn mk_0cons_mod(stlst:& Vec<Sorter>, pos: usize, l: usize, Base: usize, vargen: 
     return h;
 }
 
-fn mksorter(x: &mut Vec<(usize,usize)>, l: usize, h:usize) {
+pub fn mksorter(x: &mut Vec<(usize,usize)>, l: usize, h:usize) {
     if (h - l) >= 1 {
         let mid = l + ((h - l) / 2);
         mksorter(x, l, mid);

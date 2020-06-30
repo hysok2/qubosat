@@ -6,6 +6,6 @@ In this sandbox, we will make the prototype of the algorithm which solves Quadra
 
 Currently, we have the following results:
 - We show the naive algorithm and its computational complexity result. [memo](https://github.com/hysok2/qubosat/blob/master/qubo2sat.pdf)
-- We implemented the initial prototype of our algorithm, which utilizes binary search to find a solution and sorter to translate pseudo-boolean constraints into sat.  The technique that uses sorter to translate pseudo-boolean constraints into sat is investigated by Eén & Sörensson[1]. We adopt Varisat[2] as a SAT solver.
+- We implemented the initial prototype of our algorithm, which utilizes binary search to find a solution and sorter to translate pseudo-boolean constraints into sat.  We adopt the method that users sorter to translate pseudo-boolean constraints into sat, which is investigated by Eén & Sörensson[1].  We adopt Varisat[2] as a SAT solver.
     - [1] Eén & Sörensson: Translating pseudo-boolean constraints into SAT. In Journal on Satisfiability, Boolean Modeling and Computation, Volume 2.
     - [2] https://jix.one/project/varisat/
