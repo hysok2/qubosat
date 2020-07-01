@@ -57,7 +57,7 @@ pub fn chkqubo(input:Vec<Vec<i32>>, val: i32) -> Result<bool,String> {
     }
     
     //係数をBaseで素因数分解
-    let Base = 5;
+    let Base = 3;
     let mut num_b = Vec::<Vec<i32>>::new();
     for i in 0..(N.len()) {
         let mut tmp = Vec::<i32>::new();
@@ -194,7 +194,7 @@ pub fn chkqubo(input:Vec<Vec<i32>>, val: i32) -> Result<bool,String> {
         if zeropos[i] == None || zeropos[i] == Some(0) {
             continue;
         } else {
-            solver.add_formula(&mk_0cons_mod_less(&sorter_lst, sorter_lst.len() - 1 - 1 - i, 
+            solver.add_formula(&mk_0cons_mod_not_grt(&sorter_lst, sorter_lst.len() - 1 - 1 - i, 
                 zeropos[i].unwrap() as usize, Base as usize, &mut vg));
         }
         match solver.solve() {
@@ -260,5 +260,59 @@ pub fn mk_0cons_mod_less(stlst:& Vec<Sorter>, pos: usize, l: usize, Base: usize,
     }
     h.add_clause(&vl);
     println!("h {:?}", h);
+    return h;
+}
+
+pub fn mk_0cons_mod_not_grt(stlst:& Vec<Sorter>, pos: usize, l: usize, Base: usize, vargen: &mut usize) -> CnfFormula {
+    let mut h = CnfFormula::new();
+    let mut j = 0;
+
+    let mut vl = Vec::<Lit>::new();
+
+    for m in l..Base {
+        println!("iter {} in mk mod less",m);
+        j = m;
+        if m == 0 {
+            vl.push(Lit::from_dimacs(-(stlst[pos].output[0] as isize)));
+            j += Base;
+            while j < stlst[pos].output.len() {
+                let k1 = j;
+                let k0 = j - 1;
+                let v1 = stlst[pos].output[k1] as isize;
+                let v0 = stlst[pos].output[k0] as isize;
+                let o = (*vargen) as isize;
+                *vargen += 1;
+                vl.push(Lit::from_dimacs(o));
+                //v0 = true, v1 = false,
+                //o = !v1 and v0
+                h.add_clause(&[Lit::from_dimacs(v1), !Lit::from_dimacs(v0), Lit::from_dimacs(o)]);
+                h.add_clause(&[!Lit::from_dimacs(v1), !Lit::from_dimacs(o)]);
+                h.add_clause(&[Lit::from_dimacs(v0), !Lit::from_dimacs(o)]);
+                j += Base;
+            }
+            if j == stlst[pos].output.len() {vl.push(Lit::from_dimacs(stlst[pos].output[j - 1] as isize));}
+        } else {
+            while j < stlst[pos].output.len() {
+                let k1 = j;
+                let k0 = j - 1;
+                let v1 = stlst[pos].output[k1] as isize;
+                let v0 = stlst[pos].output[k0] as isize;
+                let o = (*vargen) as isize;
+                *vargen += 1;
+                vl.push(Lit::from_dimacs(o));
+                //v0 = true, v1 = false,
+                //o = !v1 and v0
+                h.add_clause(&[Lit::from_dimacs(v1), !Lit::from_dimacs(v0), Lit::from_dimacs(o)]);
+                h.add_clause(&[!Lit::from_dimacs(v1), !Lit::from_dimacs(o)]);
+                h.add_clause(&[Lit::from_dimacs(v0), !Lit::from_dimacs(o)]);
+                j += Base;
+            }
+            if j == stlst[pos].output.len() {vl.push(Lit::from_dimacs(stlst[pos].output[j - 1] as isize));}
+        }
+    }
+    for e in vl.iter() {
+        h.add_clause(&[!(*e)]);
+    }
+    //println!("h {:?}", h);
     return h;
 }
