@@ -316,7 +316,7 @@ pub fn mk_0cons(stlst:& Vec<Sorter>, zeropos:usize) -> CnfFormula {
     //println!("0 assigns {:?}",h);
     return h;
 }
-//2個目以降のsorter探索時に使う、1個目の出力を埋める関数
+//sorter2個目以降の解探索時に使う、1個目の出力を埋める関数
 pub fn mk_0cons2(stlst:& Vec<Sorter>, zeropos:usize) -> CnfFormula {
     let mut h = CnfFormula::new();
     for j in 0..zeropos {
