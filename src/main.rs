@@ -1,25 +1,37 @@
 
 use qubosat::solqubo;
 use qubosat::chkqubo;
+use qubosat::utils;
 
 fn main() {
-    let input = vec![vec![1,0],vec![0,-10]];
+    use std::env;
+    let filename = env::args().nth(1).expect("filename required");
+    match utils::readqubo(filename) {
+        Ok(cl) => {
+            //println!("{:?}",cl);
+            match solqubo::solqubo(cl) {
+                Ok(n) => println!("res = {}",n),
+                Err(e) => println!("Error : {}",e),
+            };
+        },
+        Err(st) => println!("{}", st),
+    }
+    //let input = vec![vec![1,0],vec![0,-10]];
     //let input = vec![vec![1,0],vec![-4,1]];
-    match solqubo::solqubo(input) {
-        Ok(n) => println!("res = {}",n),
-        Err(e) => println!("Error : {}",e),
-    };
+    //let input = vec![vec![1]];
+    //let input = vec![vec![10,20],vec![-2,3]];
+    //let input = vec![vec![-5,2,4,0],vec![2,-3,1,0],vec![4,1,-8,5],vec![0,0,5,-6]];
 }
 
-/*
+
 #[test]
 fn test1() {
-    assert_eq!(solqubo::solqubo(vec![vec![1]]),Ok(0));
-    assert_eq!(solqubo::solqubo(vec![vec![1,0],vec![0,-10]]),Ok(-10));
-    assert_eq!(solqubo::solqubo(vec![vec![1,0],vec![-4,1]]),Ok(-2));
-    assert_eq!(solqubo::solqubo(vec![vec![10,20],vec![-2,3]]),Ok(0));
+    //assert_eq!(solqubo::solqubo(vec![vec![1]]),Ok(0));
+    //assert_eq!(solqubo::solqubo(vec![vec![1,0],vec![0,-10]]),Ok(-10));
+    //assert_eq!(solqubo::solqubo(vec![vec![1,0],vec![-4,1]]),Ok(-2));
+    //assert_eq!(solqubo::solqubo(vec![vec![10,20],vec![-2,3]]),Ok(0));
     //Problems from Glover et al. Quantum Bridge Analytics I: A Tutorial on Formulating and Using QUBO Models
-    assert_eq!(solqubo::solqubo(vec![vec![-5,2,4,0],vec![2,-3,1,0],vec![4,1,-8,5],vec![0,0,5,-6]]),Ok(-11));
+    //assert_eq!(solqubo::solqubo(vec![vec![-5,2,4,0],vec![2,-3,1,0],vec![4,1,-8,5],vec![0,0,5,-6]]),Ok(-11));
     assert_eq!(solqubo::solqubo(vec![
         vec![-3525, 175, 325, 775, 1050, 425, 525, 250],
         vec![175, -1113, 91, 217, 294, 119, 147, 70],
@@ -32,7 +44,7 @@ fn test1() {
         ]),Ok(-6889));
         
 }
-*/
+/*
 #[test]
 fn test2 () {
     assert_eq!(chkqubo::chkqubo(vec![vec![1]],0),Ok(true));
@@ -74,3 +86,4 @@ fn test2 () {
         vec![250, 70, 130, 310, 420, 170, 210, -1560],
         ],-6888),Ok(false));
 }
+*/

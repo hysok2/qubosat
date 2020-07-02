@@ -62,7 +62,7 @@ pub fn solqubo(input:Vec<Vec<i32>>) -> Result<i32,String> {
     }
     
     //係数をBaseで素因数分解
-    let Base = 5;
+    let Base = 6;
     let mut num_b = Vec::<Vec<i32>>::new();
     for i in 0..(N.len()) {
         let mut tmp = Vec::<i32>::new();
@@ -77,15 +77,15 @@ pub fn solqubo(input:Vec<Vec<i32>>) -> Result<i32,String> {
         }
         num_b.push(tmp);
     }
-    println!("bum_b {:?}",num_b);
+    //println!("bum_b {:?}",num_b);
 
     //sorter作成
     let mut sorter_lst = Vec::<Sorter>::new();
     let mut vargen = N.len() + n + 1;
     mk_sorterlst(&mut sorter_lst, & num_b, &mut f, Base as usize, n, &mut vargen);
 
-    println!("{:?}",sorter_lst);
-    println!("{:?}",f);
+    //println!("{:?}",sorter_lst);
+    //println!("{:?}",f);
 
     //////////解探索開始
     // sorter 1個目の出力を上から順に0を制約として入れて、satを解く
@@ -104,6 +104,16 @@ pub fn solqubo(input:Vec<Vec<i32>>) -> Result<i32,String> {
         Err(msg) => return Err(msg.to_string()),
     }
 
+    if res {
+        satmodel = solver.model().unwrap();
+        zerop = sorter_lst[sorter_lst.len() - 1].output.len() 
+            - get_sorterouts(&sorter_lst, &satmodel)[0].unwrap();
+    }
+
+    //println!("{:?}", satmodel);
+    //println!("{:?}", get_sorterouts(&sorter_lst, &satmodel));
+    //println!("{}", zerop);
+
     while res && zerop < sorter_lst[sorter_lst.len() - 1].output.len() {
         zerop += 1;
         solver = Solver::new();
@@ -114,36 +124,37 @@ pub fn solqubo(input:Vec<Vec<i32>>) -> Result<i32,String> {
                 res = result,
             Err(msg) => return Err(msg.to_string()),
         }
+        if res {
+            satmodel = solver.model().unwrap();
+            zerop = sorter_lst[sorter_lst.len() - 1].output.len() 
+                - get_sorterouts(&sorter_lst, &satmodel)[0].unwrap();
+        }
     }
     
     if !res {
         zerop -= 1;
-        solver = Solver::new();
-        solver.add_formula(&f);
-        solver.add_formula(&mk_0cons(&sorter_lst, zerop));
-        match solver.solve() {
-            Ok(result) => 
-                res = result,
-            Err(msg) => return Err(msg.to_string()),
-        }
+        res = true;
     }
-    
-    println!("zerop {}", zerop);
+
+    //println!("zerop {}", zerop);
     let mut vg = 0;
 
     //sorter 2個目以降
     let mut zeropos = Vec::<Option<usize>>::new();
+    let mut satmodelzp = get_sorterouts(&sorter_lst,&satmodel);
+
     for i in 1..(sorter_lst.len()) {
         if sorter_lst[i].output.len() == 0 {
             zeropos.push(None);
             continue;
         }
-        for j in 0..Base {
+        for j in 0..(satmodelzp[i].unwrap() % (Base as usize)) {
             //println!("iter {}",j);
             vg = vargen;
             solver = Solver::new();
             solver.add_formula(&f);
-            solver.add_formula(&mk_0cons(&sorter_lst, zerop));
+            //solver.add_formula(&mk_0cons(&sorter_lst,zerop));
+            solver.add_formula(&mk_0cons2(&sorter_lst, zerop));
             for k in 0..(zeropos.len()) {
                 match zeropos[k] {
                     Some(mk) => {
@@ -165,23 +176,24 @@ pub fn solqubo(input:Vec<Vec<i32>>) -> Result<i32,String> {
             }
             if res {
                 zeropos.push(Some(j as usize));
+                satmodel=solver.model().unwrap();
+                satmodelzp=get_sorterouts(&sorter_lst, &satmodel);
                 break;
             }
         }
         
     }
-
-    satmodel=solver.model().unwrap();
     
     println!("-----result-----");
     println!("N = {:?}",N);
     println!("sorter_lst {:?}",sorter_lst);
     println!("zeropos {} {:?}",sorter_lst[sorter_lst.len() - 1].output.len() - zerop, zeropos);
     println!("model {:?}",satmodel);
-        
+    
+    //変数付値から、最小値の計算
     let mut q = 0;
     for i in n..(n + M.len()) {
-        println!("{:?}",satmodel[i]);
+        //println!("{:?}",satmodel[i]);
         if satmodel[i] == Lit::from_dimacs((i + 1) as isize) {
             q = q + M[i-n];
         } else {
@@ -191,8 +203,30 @@ pub fn solqubo(input:Vec<Vec<i32>>) -> Result<i32,String> {
         //println!("{}",q);
     }
     //println!("sorter_lst {:?}",sorter_lst);
-    println!("min val, q, p = {} {} {}",q-p, q, p);
+    //println!("min val, q, p = {} {} {}",q-p, q, p);
     return Ok(q-p);
+
+    //return Ok(0);
+}
+
+pub fn get_sorterouts(sorter_lst: & Vec<Sorter>, model: & Vec::<Lit>) -> Vec<Option<usize>> {
+    let mut ret = Vec::<Option<usize>>::new();
+    for i in 0..(sorter_lst.len()) {
+        if sorter_lst[sorter_lst.len() - 1 - i].output.len() == 0 {
+            ret.push(None);
+        } else {
+            let mut l = sorter_lst[sorter_lst.len() - 1 - i].output.len();
+            for j in 0..(sorter_lst[sorter_lst.len() - 1 - i].output.len()) {
+                let k = sorter_lst[sorter_lst.len() - 1 - i].output[j];
+                if model[k - 1] == Lit::from_dimacs(-(k as isize)) {
+                    l = j;
+                    break;
+                }
+            }
+            ret.push(Some(l));
+        }
+    }
+    return ret;
 }
 
 pub fn mk_sorterlst(sorter_lst: &mut Vec<Sorter>, num_b: &Vec<Vec<i32>>, 
@@ -278,6 +312,22 @@ pub fn mk_0cons(stlst:& Vec<Sorter>, zeropos:usize) -> CnfFormula {
         let k = stlst[stlst.len() - 1].output.len() - j - 1;
         h.add_clause(&[!Lit::from_dimacs(stlst[stlst.len() - 1].output[k] as isize)]);
         //println!("{}", sorter_lst[i].output[k]);
+    }
+    //println!("0 assigns {:?}",h);
+    return h;
+}
+//2個目以降のsorter探索時に使う、1個目の出力を埋める関数
+pub fn mk_0cons2(stlst:& Vec<Sorter>, zeropos:usize) -> CnfFormula {
+    let mut h = CnfFormula::new();
+    for j in 0..zeropos {
+        let k = stlst[stlst.len() - 1].output.len() - j - 1;
+        h.add_clause(&[!Lit::from_dimacs(stlst[stlst.len() - 1].output[k] as isize)]);
+        //println!("{}", sorter_lst[i].output[k]);
+    }
+    
+    for j in zeropos..(stlst[stlst.len() - 1].output.len()) {
+        let k = stlst[stlst.len() - 1].output.len() - j - 1;
+        h.add_clause(&[Lit::from_dimacs(stlst[stlst.len() - 1].output[k] as isize)]);
     }
     //println!("0 assigns {:?}",h);
     return h;
