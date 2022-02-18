@@ -1,4 +1,3 @@
-
 use qubosat::solqubo;
 use qubosat::chkqubo;
 use qubosat::utils;
@@ -20,6 +19,16 @@ fn main() {
 
 
 #[test]
+fn test0() {
+    assert_eq!(solqubo::solqubo(vec![
+        vec![-1,0,1,1,1,0],
+        vec![0,-1,0,1,0,0], 
+        vec![0,0,-1,0,0,0], 
+        vec![0,0,0,-1,0,1], 
+        vec![0,0,0,0,-1,0], 
+        vec![0,0,0,0,0,-1]]),Ok(-4));
+}
+#[test]
 fn test1() {
     assert_eq!(solqubo::solqubo(vec![vec![1]]),Ok(0));
     assert_eq!(solqubo::solqubo(vec![vec![1,0],vec![0,-10]]),Ok(-10));
@@ -39,7 +48,6 @@ fn test1() {
         ]),Ok(-6889));
         
 }
-/*
 #[test]
 fn test2 () {
     assert_eq!(chkqubo::chkqubo(vec![vec![1]],0),Ok(true));
@@ -81,4 +89,3 @@ fn test2 () {
         vec![250, 70, 130, 310, 420, 170, 210, -1560],
         ],-6888),Ok(false));
 }
-*/

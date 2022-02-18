@@ -1,0 +1,8 @@
+c E={{1,2},{1,6},{2,3},{2,5},{2,6},{3,4},{3,5},{3,6},{4,5},{4,6}}.  The size of the max clique is 4.
+c The answer of this QUBO problem will be -4.
+-1 0 1 1 1 0 
+0 -1 0 1 0 0 
+0 0 -1 0 0 0 
+0 0 0 -1 0 1 
+0 0 0 0 -1 0 
+0 0 0 0 0 -1
