@@ -56,7 +56,7 @@ pub fn chkqubo(input:Vec<Vec<i32>>, val: i32) -> Result<bool,String> {
     }
     
     //係数をBaseで素因数分解
-    const BASE : i32 = 3;
+    const BASE : i32 = 2;
     let mut num_b = Vec::<Vec<i32>>::new();
     for i in 0..(mat_n.len()) {
         let mut tmp = Vec::<i32>::new();

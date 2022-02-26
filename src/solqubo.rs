@@ -1,6 +1,8 @@
 use varisat::{CnfFormula, ExtendFormula};
 use varisat::{Lit};
 
+use std::time::{Duration, Instant};
+
 #[derive(Debug)]
 pub struct Sorter {
     pub input : Vec<usize>,
@@ -8,7 +10,7 @@ pub struct Sorter {
     pub numcarr : usize,
 }
 
-pub fn solqubo(input:Vec<Vec<i32>>) -> Result<i32,String> {
+pub fn solqubo(input:Vec<Vec<i32>>, base: i32) -> Result<i32,String> {
     let n = input.len();
     let mut mat_n = Vec::<i32>::new();
     let mut p = 0;
@@ -60,8 +62,7 @@ pub fn solqubo(input:Vec<Vec<i32>>) -> Result<i32,String> {
         mat_m.push(mat_n[i].abs());
     }
     
-    //係数をBASEで素因数分解
-    const BASE : i32 = 6;
+    //係数をbaseで素因数分解
     let mut num_b = Vec::<Vec<i32>>::new();
     for i in 0..(mat_n.len()) {
         let mut tmp = Vec::<i32>::new();
@@ -70,8 +71,8 @@ pub fn solqubo(input:Vec<Vec<i32>>) -> Result<i32,String> {
             tmp.push(0);
         } else {
             while m > 0 {
-                tmp.push(m % BASE);
-                m = m / BASE;
+                tmp.push(m % base);
+                m = m / base;
            }
         }
         num_b.push(tmp);
@@ -81,7 +82,7 @@ pub fn solqubo(input:Vec<Vec<i32>>) -> Result<i32,String> {
     //sorter作成
     let mut sorter_lst = Vec::<Sorter>::new();
     let mut vargen = mat_n.len() + n + 1;
-    mk_sorterlst(&mut sorter_lst, & num_b, &mut f, BASE as usize, n, &mut vargen);
+    mk_sorterlst(&mut sorter_lst, & num_b, &mut f, base as usize, n, &mut vargen);
 
     //println!("{:?}",sorter_lst);
     //println!("{:?}",f);
@@ -94,6 +95,34 @@ pub fn solqubo(input:Vec<Vec<i32>>) -> Result<i32,String> {
     let mut solver = Solver::new();
     let mut res;
     let mut satmodel = Vec::<Lit>::new();
+
+    let start = Instant::now();
+
+    // quboの解は0以下なので、0以下から解を探すようにsorter出力への0制約の位置を調整する
+    let mut p_b = Vec::<i32>::new();
+    let mut m = p;
+    if m == 0 {
+        p_b.push(0);
+    } else {
+        while m > 0 {
+            p_b.push(m % base);
+            m = m / base;
+       }
+    }
+    if p_b.len() < sorter_lst.len() {
+        zerop = sorter_lst[sorter_lst.len() - 1].output.len();
+    } else if p_b.len() == sorter_lst.len() {
+        zerop = sorter_lst[sorter_lst.len() - 1].output.len() - (p_b[p_b.len()-1] as usize);
+    } else {
+        let mut tmp = 0;
+        for i in 0..(p_b.len()-sorter_lst.len()) {
+            tmp = tmp * base + p_b[p_b.len()-i-1];
+        }
+        zerop = sorter_lst[sorter_lst.len() - 1].output.len() - ((tmp * base) as usize);
+    }
+    println!("p {} p_b {:?} zerop {}", p, p_b, zerop);
+    println!("sl.len {} p_b.len {}", sorter_lst.len(), p_b.len());
+
     
     solver.add_formula(&f);
     solver.add_formula(&mk_0cons(&sorter_lst, zerop));
@@ -102,6 +131,10 @@ pub fn solqubo(input:Vec<Vec<i32>>) -> Result<i32,String> {
             res = result,
         Err(msg) => return Err(msg.to_string()),
     }
+
+    let end = start.elapsed();
+    println!("1st {} {}.{:03}sec", res, end.as_secs(), end.subsec_nanos() / 1_000_000);
+    let start = Instant::now();
 
     if res {
         satmodel = solver.model().unwrap();
@@ -128,11 +161,15 @@ pub fn solqubo(input:Vec<Vec<i32>>) -> Result<i32,String> {
             zerop = sorter_lst[sorter_lst.len() - 1].output.len() 
                 - get_sorterouts(&sorter_lst, &satmodel)[0].unwrap();
         }
+
+        let end = start.elapsed();
+        println!("1st {} {}.{:03}sec", res, end.as_secs(), end.subsec_nanos() / 1_000_000);
+        let start = Instant::now();
     }
     
     if !res {
         zerop -= 1;
-        //res = true;
+        res = true;
     }
 
     //println!("zerop {}", zerop);
@@ -147,7 +184,7 @@ pub fn solqubo(input:Vec<Vec<i32>>) -> Result<i32,String> {
             zeropos.push(None);
             continue;
         }
-        for j in 0..(satmodelzp[i].unwrap() % (BASE as usize)) {
+        for j in 0..(satmodelzp[i].unwrap() % (base as usize)) {
             //println!("iter {}",j);
             vg = vargen;
             solver = Solver::new();
@@ -159,20 +196,26 @@ pub fn solqubo(input:Vec<Vec<i32>>) -> Result<i32,String> {
                     Some(mk) => {
                         solver.add_formula(
                         &mk_0cons_mod(&sorter_lst, sorter_lst.len() - 1 - 1 - k,
-                        mk as usize, BASE as usize, &mut vg));
+                        mk as usize, base as usize, &mut vg));
                     },
                     None => continue,
                 }
             }
             
             solver.add_formula(&mk_0cons_mod(&sorter_lst, sorter_lst.len() - 1 - i, 
-                j as usize, BASE as usize, &mut vg));
-            
+                j as usize, base as usize, &mut vg));
+
+            let start = Instant::now();
+
             match solver.solve() {
                 Ok(result) => 
                     res = result,
                 Err(msg) => return Err(msg.to_string()),
             }
+
+            let end = start.elapsed();
+            println!("{}th {} {}.{:03}sec", i+1, res, end.as_secs(), end.subsec_nanos() / 1_000_000);
+
             if res {
                 zeropos.push(Some(j as usize));
                 satmodel=solver.model().unwrap();
@@ -203,7 +246,7 @@ pub fn solqubo(input:Vec<Vec<i32>>) -> Result<i32,String> {
         } else {
 
         }
-        //q = q + ((sorter_lst[i].output.len() - zeropos[i]) as i32) * BASE.pow(j);
+        //q = q + ((sorter_lst[i].output.len() - zeropos[i]) as i32) * base.pow(j);
         //println!("{}",q);
     }
     //println!("sorter_lst {:?}",sorter_lst);
