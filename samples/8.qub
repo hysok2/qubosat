@@ -1,4 +1,5 @@
 c Problems from Glover et al. Quantum Bridge Analytics I: A Tutorial on Formulating and Using QUBO Models
+c The answer is -6889, and the optimum assignment is (0,0,0,1,1,0,0,1) and (0,1,1,0,1,0,1,0)
 -3525 175 325 775 1050 425 525 250
 175 -1113 91 217 294 119 147 70
 325 91 -1989 403 546 221 273 130

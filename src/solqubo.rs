@@ -2,6 +2,7 @@ use varisat::{CnfFormula, ExtendFormula};
 use varisat::{Lit};
 
 use std::time::{Duration, Instant};
+use std::cmp;
 
 #[derive(Debug)]
 pub struct Sorter {
@@ -115,13 +116,14 @@ pub fn solqubo(input:Vec<Vec<i32>>, base: i32) -> Result<i32,String> {
         zerop = sorter_lst[sorter_lst.len() - 1].output.len() - (p_b[p_b.len()-1] as usize);
     } else {
         let mut tmp = 0;
-        for i in 0..(p_b.len()-sorter_lst.len()) {
+        for i in 0..(p_b.len()-sorter_lst.len()+1) {
             tmp = tmp * base + p_b[p_b.len()-i-1];
         }
-        zerop = sorter_lst[sorter_lst.len() - 1].output.len() - ((tmp * base) as usize);
+        zerop = sorter_lst[sorter_lst.len() - 1].output.len() - (tmp as usize);
     }
-    println!("p {} p_b {:?} zerop {}", p, p_b, zerop);
-    println!("sl.len {} p_b.len {}", sorter_lst.len(), p_b.len());
+    //println!("p {} p_b {:?} zerop {}", p, p_b, zerop);
+    //println!("sl.len {} p_b.len {}", sorter_lst.len(), p_b.len());
+    //println!("sl.last.len {}", sorter_lst[sorter_lst.len() - 1].output.len());
 
     
     solver.add_formula(&f);
@@ -169,7 +171,7 @@ pub fn solqubo(input:Vec<Vec<i32>>, base: i32) -> Result<i32,String> {
     
     if !res {
         zerop -= 1;
-        res = true;
+        //res = true;
     }
 
     //println!("zerop {}", zerop);
@@ -177,14 +179,13 @@ pub fn solqubo(input:Vec<Vec<i32>>, base: i32) -> Result<i32,String> {
 
     //sorter 2個目以降
     let mut zeropos = Vec::<Option<usize>>::new();
-    let mut satmodelzp = get_sorterouts(&sorter_lst,&satmodel);
 
     for i in 1..(sorter_lst.len()) {
-        if sorter_lst[i].output.len() == 0 {
+        if sorter_lst[sorter_lst.len() - 1 - i].output.len() == 0 {
             zeropos.push(None);
             continue;
         }
-        for j in 0..(satmodelzp[i].unwrap() % (base as usize)) {
+        for j in 0..cmp::min(base as usize, sorter_lst[sorter_lst.len() - 1 - i].output.len()) {
             //println!("iter {}",j);
             vg = vargen;
             solver = Solver::new();
@@ -219,7 +220,6 @@ pub fn solqubo(input:Vec<Vec<i32>>, base: i32) -> Result<i32,String> {
             if res {
                 zeropos.push(Some(j as usize));
                 satmodel=solver.model().unwrap();
-                satmodelzp=get_sorterouts(&sorter_lst, &satmodel);
                 break;
             }
         }
@@ -380,6 +380,7 @@ pub fn mk_0cons2(stlst:& Vec<Sorter>, zeropos:usize) -> CnfFormula {
     return h;
 }
 
+// pos番目のsorterの"出力の1の数 mod base"がlとなるかを表す制約を作る。
 pub fn mk_0cons_mod(stlst:& Vec<Sorter>, pos: usize, l: usize, base: usize, vargen: &mut usize) -> CnfFormula {
     let mut h = CnfFormula::new();
     let mut j = l;

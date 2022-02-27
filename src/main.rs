@@ -18,7 +18,7 @@ fn main() {
     }
 }
 
-/*
+
 #[test]
 fn test0() {
     assert_eq!(solqubo::solqubo(vec![
@@ -29,15 +29,15 @@ fn test0() {
         vec![0,0,0,0,-1,0], 
         vec![0,0,0,0,0,-1]],2),Ok(-4));
 }
-#[test]
-fn test1() {
-    assert_eq!(solqubo::solqubo(vec![vec![1]],2),Ok(0));
-    assert_eq!(solqubo::solqubo(vec![vec![1,0],vec![0,-10]],2),Ok(-10));
-    assert_eq!(solqubo::solqubo(vec![vec![1,0],vec![-4,1]],2),Ok(-2));
-    assert_eq!(solqubo::solqubo(vec![vec![10,20],vec![-2,3]],2),Ok(0));
-    assert_eq!(solqubo::solqubo(vec![vec![-1000,1],vec![0,-1000]],2),Ok(-1999));
+
+fn test1_lst(base : i32) {
+    assert_eq!(solqubo::solqubo(vec![vec![1]],base),Ok(0));
+    assert_eq!(solqubo::solqubo(vec![vec![1,0],vec![0,-10]],base),Ok(-10));
+    assert_eq!(solqubo::solqubo(vec![vec![1,0],vec![-4,1]],base),Ok(-2));
+    assert_eq!(solqubo::solqubo(vec![vec![10,20],vec![-2,3]],base),Ok(0));
+    assert_eq!(solqubo::solqubo(vec![vec![-1000,1],vec![0,-1000]],base),Ok(-1999));
     //Problems from Glover et al. Quantum Bridge Analytics I: A Tutorial on Formulating and Using QUBO Models
-    assert_eq!(solqubo::solqubo(vec![vec![-5,2,4,0],vec![2,-3,1,0],vec![4,1,-8,5],vec![0,0,5,-6]],2),Ok(-11));
+    assert_eq!(solqubo::solqubo(vec![vec![-5,2,4,0],vec![2,-3,1,0],vec![4,1,-8,5],vec![0,0,5,-6]],base),Ok(-11));
     assert_eq!(solqubo::solqubo(vec![
         vec![-3525, 175, 325, 775, 1050, 425, 525, 250],
         vec![175, -1113, 91, 217, 294, 119, 147, 70],
@@ -47,10 +47,20 @@ fn test1() {
         vec![425, 119, 221, 527, 714, -2533, 357, 170],
         vec![525, 147, 273, 651, 882, 357, -3045, 210],
         vec![250, 70, 130, 310, 420, 170, 210, -1560],
-        ],2),Ok(-6889));
+        ],base),Ok(-6889));
+}
+
+#[test]
+fn test1() {
+    let li : Vec<i32> = vec![2,3,5,10];
+
+    for i in li.iter() {
+        println!("test with base : {}", *i);
+        test1_lst(*i);
+    }
         
 }
-*/
+/*
 #[test]
 fn test2 () {
     assert_eq!(chkqubo::chkqubo(vec![vec![1]],0),Ok(true));
@@ -92,3 +102,4 @@ fn test2 () {
         vec![250, 70, 130, 310, 420, 170, 210, -1560],
         ],-6888),Ok(false));
 }
+*/
