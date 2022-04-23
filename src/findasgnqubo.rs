@@ -3,7 +3,8 @@ use varisat::{Lit};
 
 use crate::solqubo::*;
 
-pub fn chkqubo(input:Vec<Vec<i32>>, val: i32, base: i32) -> Result<bool,String> {
+// val以下となるQUBOの付値を求める
+pub fn findasgnqubo(input:Vec<Vec<i32>>, val: i32, base: i32) -> Result<bool,String> {
     let n = input.len();
     let mut mat_n = Vec::<i32>::new();
     let mut p = 0;
@@ -98,7 +99,7 @@ pub fn chkqubo(input:Vec<Vec<i32>>, val: i32, base: i32) -> Result<bool,String> 
 
     let mut solver = Solver::new();
     let mut res;
-    //let mut satmodel = Vec::<Lit>::new();
+    let mut satmodel = Vec::<Lit>::new();
     let mut zerop = 0;
     let mut zeropos = Vec::<Option<usize>>::new();
     let mut vg = 0;
@@ -129,7 +130,7 @@ pub fn chkqubo(input:Vec<Vec<i32>>, val: i32, base: i32) -> Result<bool,String> 
     }
     //println!("stlst len, zerop, num_val, zeropos = {} {} {:?} {:?}", sorter_lst.len(), zerop, num_val, zeropos);
 
-    // valとなる変数配置があるかを確認(quboの解がval以下かを確認)
+    // valとなる変数配置があるかを確認
     vg = vargen;
     solver.add_formula(&f);
     solver.add_formula(&mk_0cons(&sorter_lst, zerop));
@@ -151,61 +152,14 @@ pub fn chkqubo(input:Vec<Vec<i32>>, val: i32, base: i32) -> Result<bool,String> 
     if !res {
         return Ok(false);
     }
-
     
-    // quboの答えが、valより小さくないか確認
-    // sorter 1個目の出力に0を足してsatを解く
-
-    if zerop < sorter_lst.last().unwrap().output.len() {
-        solver.add_formula(&f);
-        solver.add_formula(&mk_0cons(&sorter_lst, zerop + 1));
-        match solver.solve() {
-            Ok(result) => 
-                res = result,
-            Err(msg) => return Err(msg.to_string()),
-        }
-        if res {
-            return Ok(false);
-        }
+    println!("-----result-----");
+    satmodel=solver.model().unwrap();
+    print!("model");
+    for i in 0..n {
+        print!(" {:?}",satmodel[i]);
     }
-
-    // sorter 2個目以降を調べる
-    
-    for i in 0..(zeropos.len()) {
-        //println!("iter {}", i);
-        solver = Solver::new();
-        solver.add_formula(&f);
-        solver.add_formula(&mk_0cons(&sorter_lst, zerop));
-        vg = vargen;
-
-        for k in 0..i {
-            match zeropos[k] {
-                Some(mk) => {
-                    solver.add_formula(
-                    &mk_0cons_mod(&sorter_lst, sorter_lst.len() - 1 - 1 - k,
-                    mk as usize, base as usize, &mut vg));
-                },
-                None => continue,
-            }
-        }
-
-        if zeropos[i] == None || zeropos[i] == Some(0) {
-            continue;
-        } else {
-            solver.add_formula(&mk_0cons_mod_not_grt(&sorter_lst, sorter_lst.len() - 1 - 1 - i, 
-                zeropos[i].unwrap() as usize, base as usize, &mut vg));
-        }
-        match solver.solve() {
-            Ok(result) => 
-                res = result,
-            Err(msg) => return Err(msg.to_string()),
-        }
-        if res {
-            return Ok(false);
-        }
-        
-    }
-    
+    println!();
     return Ok(true);
 }
 

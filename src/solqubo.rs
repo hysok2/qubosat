@@ -4,6 +4,8 @@ use varisat::{Lit};
 use std::time::{Duration, Instant};
 use std::cmp;
 
+use crate::tabus;
+
 #[derive(Debug)]
 pub struct Sorter {
     pub input : Vec<usize>,
@@ -11,6 +13,7 @@ pub struct Sorter {
     pub numcarr : usize,
 }
 
+// quboの解をtabuサーチで探索し、その解以下から探す
 pub fn solqubo(input:Vec<Vec<i32>>, base: i32) -> Result<i32,String> {
     let n = input.len();
     let mut mat_n = Vec::<i32>::new();
@@ -35,27 +38,11 @@ pub fn solqubo(input:Vec<Vec<i32>>, base: i32) -> Result<i32,String> {
         }
     }
 
-    // QUBOの変数とPseudo boolean constraintsの変数の関係をCNFで記述、mat_nの要素のminusを考慮
+    //println!("ts {}", tabus::ts_qubo(&mat_n, n, 50));
+
     let mut f = CnfFormula::new();
-    for i in 0..n {
-        for j in 0..(i+1) {
-            if mat_n[(i*(i+1))/2+j] >= 0 {
-                let x = (i+1) as isize;
-                let y = (j+1) as isize;
-                let z = ((i*(i+1))/2+j+1+n) as isize;
-                f.add_clause(&[!Lit::from_dimacs(x), !Lit::from_dimacs(y), Lit::from_dimacs(z)]);
-                f.add_clause(&[Lit::from_dimacs(x), !Lit::from_dimacs(z)]);
-                f.add_clause(&[Lit::from_dimacs(y), !Lit::from_dimacs(z)]);
-            } else {
-                let x = (i+1) as isize;
-                let y = (j+1) as isize;
-                let z = ((i*(i+1))/2+j+1+n) as isize;
-                f.add_clause(&[!Lit::from_dimacs(x), !Lit::from_dimacs(y), !Lit::from_dimacs(z)]);
-                f.add_clause(&[Lit::from_dimacs(x), Lit::from_dimacs(z)]);
-                f.add_clause(&[Lit::from_dimacs(y), Lit::from_dimacs(z)]);
-            }
-        }
-    }
+    // QUBOの変数とPseudo boolean constraintsの変数の関係をCNFで記述、mat_nの要素のminusを考慮
+    mk_cons_qv_pbv(&mut f, n, &mat_n);
     
     // mat_m=abs(mat_n)
     let mut mat_m = Vec::<i32>::new();
@@ -100,8 +87,9 @@ pub fn solqubo(input:Vec<Vec<i32>>, base: i32) -> Result<i32,String> {
     let start = Instant::now();
 
     // quboの解は0以下なので、0以下から解を探すようにsorter出力への0制約の位置を調整する
+    // quboの解をtabuサーチで探索し、その解以下から探すようにsorter出力への0制約の位置を調整する
     let mut p_b = Vec::<i32>::new();
-    let mut m = p;
+    let mut m = tabus::ts_qubo(&mat_n,n,10) + p;
     if m == 0 {
         p_b.push(0);
     } else {
@@ -124,6 +112,8 @@ pub fn solqubo(input:Vec<Vec<i32>>, base: i32) -> Result<i32,String> {
     //println!("p {} p_b {:?} zerop {}", p, p_b, zerop);
     //println!("sl.len {} p_b.len {}", sorter_lst.len(), p_b.len());
     //println!("sl.last.len {}", sorter_lst[sorter_lst.len() - 1].output.len());
+
+    //println!("vg {}",vargen);
 
     // 一度satを解き、付値を求める。必ずsatとなる。
     solver.add_formula(&f);
@@ -186,7 +176,7 @@ pub fn solqubo(input:Vec<Vec<i32>>, base: i32) -> Result<i32,String> {
             continue;
         }
 
-        // unsat回数を削減するため、出力の1の数 % baseがjj以下かを順に調べる。
+        // unsat回数を削減するため、"出力の1の数 % base"がjj以下かを順に調べる。
         for j in 0..cmp::min(base as usize, sorter_lst[sorter_lst.len() - 1 - i].output.len()) {
             //println!("iter {}",j);
             let jj = cmp::min(base as usize, sorter_lst[sorter_lst.len() - 1 - i].output.len()) - j - 1;
@@ -288,27 +278,9 @@ pub fn solqubo2(input:Vec<Vec<i32>>, base: i32) -> Result<i32,String> {
         }
     }
 
-    // QUBOの変数とPseudo boolean constraintsの変数の関係をCNFで記述、mat_nの要素のminusを考慮
     let mut f = CnfFormula::new();
-    for i in 0..n {
-        for j in 0..(i+1) {
-            if mat_n[(i*(i+1))/2+j] >= 0 {
-                let x = (i+1) as isize;
-                let y = (j+1) as isize;
-                let z = ((i*(i+1))/2+j+1+n) as isize;
-                f.add_clause(&[!Lit::from_dimacs(x), !Lit::from_dimacs(y), Lit::from_dimacs(z)]);
-                f.add_clause(&[Lit::from_dimacs(x), !Lit::from_dimacs(z)]);
-                f.add_clause(&[Lit::from_dimacs(y), !Lit::from_dimacs(z)]);
-            } else {
-                let x = (i+1) as isize;
-                let y = (j+1) as isize;
-                let z = ((i*(i+1))/2+j+1+n) as isize;
-                f.add_clause(&[!Lit::from_dimacs(x), !Lit::from_dimacs(y), !Lit::from_dimacs(z)]);
-                f.add_clause(&[Lit::from_dimacs(x), Lit::from_dimacs(z)]);
-                f.add_clause(&[Lit::from_dimacs(y), Lit::from_dimacs(z)]);
-            }
-        }
-    }
+    // QUBOの変数とPseudo boolean constraintsの変数の関係をCNFで記述、mat_nの要素のminusを考慮
+    mk_cons_qv_pbv(&mut f, n, &mat_n);
     
     // mat_m=abs(mat_n)
     let mut mat_m = Vec::<i32>::new();
@@ -508,6 +480,29 @@ pub fn solqubo2(input:Vec<Vec<i32>>, base: i32) -> Result<i32,String> {
     return Ok(q-p);
 
     //return Ok(0);
+}
+
+// QUBOの変数とPseudo boolean constraintsの変数の関係をCNFで記述、mat_nの要素のminusを考慮
+pub fn mk_cons_qv_pbv(f : &mut CnfFormula, n : usize, mat_n : & Vec<i32>) {
+    for i in 0..n {
+        for j in 0..(i+1) {
+            if mat_n[(i*(i+1))/2+j] >= 0 {
+                let x = (i+1) as isize;
+                let y = (j+1) as isize;
+                let z = ((i*(i+1))/2+j+1+n) as isize;
+                f.add_clause(&[!Lit::from_dimacs(x), !Lit::from_dimacs(y), Lit::from_dimacs(z)]);
+                f.add_clause(&[Lit::from_dimacs(x), !Lit::from_dimacs(z)]);
+                f.add_clause(&[Lit::from_dimacs(y), !Lit::from_dimacs(z)]);
+            } else {
+                let x = (i+1) as isize;
+                let y = (j+1) as isize;
+                let z = ((i*(i+1))/2+j+1+n) as isize;
+                f.add_clause(&[!Lit::from_dimacs(x), !Lit::from_dimacs(y), !Lit::from_dimacs(z)]);
+                f.add_clause(&[Lit::from_dimacs(x), Lit::from_dimacs(z)]);
+                f.add_clause(&[Lit::from_dimacs(y), Lit::from_dimacs(z)]);
+            }
+        }
+    }
 }
 
 pub fn get_sorterouts(sorter_lst: & Vec<Sorter>, model: & Vec::<Lit>) -> Vec<Option<usize>> {

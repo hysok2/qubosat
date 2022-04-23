@@ -8,3 +8,5 @@ edition = "2018"
 
 [dependencies]
 varisat = "0.2.1"
+clap = { version = "3.1.10", features = ["derive"] }
+

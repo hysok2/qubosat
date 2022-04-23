@@ -1,15 +1,117 @@
 use qubosat::solqubo;
 use qubosat::chkqubo;
+use qubosat::findasgnqubo;
 use qubosat::utils;
+use qubosat::tabus;
+
+use clap::Parser;
+
+/// Program to solve QUBO related problems with SAT
+#[derive(Parser, Debug)]
+#[clap(about, long_about = None)]
+struct Args {
+
+    qubo_filename: String,
+
+    /// Change the base number
+    #[clap(short, long, default_value = "2", value_name = "INTEGER (greater than 1)")]
+    base: i32,
+
+    /// Checking-minimality-mode: Check if a given integer is a solution
+    #[clap(short, long, allow_hyphen_values = true, value_name = "INTEGER")]
+    check: Option<i32>,
+
+    /// Finding-assifnments-mode: Find assignments 
+    #[clap(short, long, allow_hyphen_values = true, value_name = "INTEGER")]
+    findasgn: Option<i32>,
+
+    /// Optimization-mode-with-tabusearch: Solve QUBO problem with tabu search and SAT
+    #[clap(short, long)]
+    tabus: bool,
+}
+
 
 fn main() {
     use std::env;
-    let filename = env::args().nth(1).expect("filename required");
-    let base : i32 = env::args().nth(2).expect("base_num required").parse().unwrap();
+    let arg = Args::parse();
+    let filename = arg.qubo_filename;
+    let base = arg.base;
+
+    if let Some(c) = arg.check {
+        println!("-----------------------------------------------------------------");
+        println!("Checking-minimality-mode");
+        println!("The base number is {}", base);
+        println!("Input: an integer matrix Q (defined in {}), an integer q = {}", filename, c);
+        println!("Output: true (minimum) or false (not minimum)");
+        println!("-----------------------------------------------------------------");
+
+        match utils::readqubo(filename) {
+            Ok(cl) => {
+                //println!("{:?}",cl);
+                match chkqubo::chkqubo(cl, c, base) {
+                    Ok(n) => println!("res = {}",n),
+                    Err(e) => println!("Error : {}",e),
+                };
+            },
+            Err(st) => println!("{}", st),
+        }
+        return;
+    }
+
+    if let Some(c) = arg.findasgn {
+        println!("-----------------------------------------------------------------");
+        println!("Finding-assignments-mode");
+        println!("The base number is {}", base);
+        println!("Input: an integer matrix Q (defined in {}), an integer q = {}", filename, c);
+        println!("Output: assignments x s.t. x^T Q x <= q");
+        println!("-----------------------------------------------------------------");
+
+        match utils::readqubo(filename) {
+            Ok(cl) => {
+                //println!("{:?}",cl);
+                match findasgnqubo::findasgnqubo(cl, c, base) {
+                    Ok(n) => println!("res = {}",n),
+                    Err(e) => println!("Error : {}",e),
+                };
+            },
+            Err(st) => println!("{}", st),
+        }
+
+        return;
+    }
+
+    if arg.tabus {
+        println!("-----------------------------------------------------------------");
+        println!("Optimization-mode-with-tabusearch");
+        println!("The base number is {}", base);
+        println!("Input: an integer matrix Q (defined in {})", filename);
+        println!("Output: minimum value q and assignments x s.t. min_x x^T Q x = q");
+        println!("-----------------------------------------------------------------");
+
+        match utils::readqubo(filename) {
+            Ok(cl) => {
+                //println!("{:?}",cl);
+                match solqubo::solqubo(cl, base) {
+                    Ok(n) => println!("res = {}",n),
+                    Err(e) => println!("Error : {}",e),
+                };
+            },
+            Err(st) => println!("{}", st),
+        }
+        return;
+    }
+
+    println!("-----------------------------------------------------------------");
+    println!("Optimization-mode");
+    println!("The base number is {}", base);
+    println!("Input: an integer matrix Q (defined in {})", filename);
+    println!("Output: minimum value q and assignments x s.t. min_x x^T Q x = q");
+    println!("-----------------------------------------------------------------");
+
     match utils::readqubo(filename) {
         Ok(cl) => {
             //println!("{:?}",cl);
-            match solqubo::solqubo(cl, base) {
+            match solqubo::solqubo2(cl, base) {
                 Ok(n) => println!("res = {}",n),
                 Err(e) => println!("Error : {}",e),
             };
