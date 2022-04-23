@@ -11,7 +11,7 @@ Currently, we have the following results:
     - [2] https://jix.one/project/varisat/
 - We implemented 4 functionality.
     - Optimization-mode (default): Solve QUBO problem with SAT.
-    - Checking-minimality-mode: Check if a given integer is a solution.
+    - Checking-minimality-mode: Check if a given integer is a solution of a given QUBO problem.
     - Finding-assifnments-mode: Find assignments that make a given quadratic expression less than or equal to a given integer.
     - Optimization-mode-with-tabusearch: Solve QUBO problem with tabu search and SAT.
 

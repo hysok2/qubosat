@@ -17,11 +17,11 @@ struct Args {
     #[clap(short, long, default_value = "2", value_name = "INTEGER (greater than 1)")]
     base: i32,
 
-    /// Checking-minimality-mode: Check if a given integer is a solution
+    /// Checking-minimality-mode: Check if a given integer is a solution of a given QUBO problem
     #[clap(short, long, allow_hyphen_values = true, value_name = "INTEGER")]
     check: Option<i32>,
 
-    /// Finding-assifnments-mode: Find assignments 
+    /// Finding-assifnments-mode: Find assignments that make a given quadratic expression less than or equal to a given integer 
     #[clap(short, long, allow_hyphen_values = true, value_name = "INTEGER")]
     findasgn: Option<i32>,
 
