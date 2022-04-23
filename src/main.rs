@@ -21,7 +21,7 @@ struct Args {
     #[clap(short, long, allow_hyphen_values = true, value_name = "INTEGER")]
     check: Option<i32>,
 
-    /// Finding-assifnments-mode: Find assignments that make a given quadratic expression less than or equal to a given integer 
+    /// Finding-assignments-mode: Find assignments that make a given quadratic expression less than or equal to a given integer 
     #[clap(short, long, allow_hyphen_values = true, value_name = "INTEGER")]
     findasgn: Option<i32>,
 
