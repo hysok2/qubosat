@@ -9,4 +9,9 @@ Currently, we have the following results:
 - We implemented the initial prototype of our algorithm, which utilizes binary search to find a solution and sorter to translate pseudo-boolean constraints into sat.  We adopt the method that uses sorter to translate pseudo-boolean constraints into sat, which is investigated by Eén & Sörensson[1].  We adopt Varisat[2] as a SAT solver.
     - [1] Eén & Sörensson: Translating pseudo-boolean constraints into SAT. In Journal on Satisfiability, Boolean Modeling and Computation, Volume 2.
     - [2] https://jix.one/project/varisat/
+- We implemented 4 functionality.
+    - Optimization-mode (default): Solve QUBO problem with SAT.
+    - Checking-minimality-mode: Check if a given integer is a solution.
+    - Finding-assifnments-mode: Find assignments that make a given quadratic expression less than or equal to a given integer.
+    - Optimization-mode-with-tabusearch: Solve QUBO problem with tabu search and SAT.
 
