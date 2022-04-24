@@ -25,7 +25,7 @@ struct Args {
     #[clap(short, long, allow_hyphen_values = true, value_name = "INTEGER")]
     findasgn: Option<i32>,
 
-    /// Optimization-mode-with-tabusearch: Solve QUBO problem with tabu search and SAT
+    /// Optimization-mode-with-tabusearch: Solve a QUBO problem with tabu search and SAT
     #[clap(short, long)]
     tabus: bool,
 }

@@ -13,5 +13,5 @@ Currently, we have the following results:
     - Optimization-mode (default): Solve QUBO problem with SAT.
     - Checking-minimality-mode: Check if a given integer is a solution of a given QUBO problem.
     - Finding-assignments-mode: Find assignments that make a given quadratic expression less than or equal to a given integer.
-    - Optimization-mode-with-tabusearch: Solve QUBO problem with tabu search and SAT.
+    - Optimization-mode-with-tabusearch: Solve a QUBO problem with tabu search and SAT.
 
