@@ -104,7 +104,7 @@ pub fn chkqubo(input:Vec<Vec<i32>>, val: i32, base: i32) -> Result<bool,String> 
     let mut res;
 
     // valとなる変数配置があるかを確認(quboの解がval以下かを確認)
-    println!("Check if exists x s.t. x^T Q x <= val");
+    //println!("Check if exists x s.t. x^T Q x <= val");
 
     let mut zerop = 0;
     let mut zeropos = Vec::<Option<usize>>::new();
@@ -134,7 +134,7 @@ pub fn chkqubo(input:Vec<Vec<i32>>, val: i32, base: i32) -> Result<bool,String> 
             zeropos.push(Some(num_val[i] as usize));
         }
     }
-    println!("stlst len, zerop, num_val, zeropos = {} {} {:?} {:?}", sorter_lst.len(), zerop, num_val, zeropos);
+    //println!("stlst len, zerop, num_val, zeropos = {} {} {:?} {:?}", sorter_lst.len(), zerop, num_val, zeropos);
 
     vg = vargen;
     solver.add_formula(&f);
@@ -162,7 +162,7 @@ pub fn chkqubo(input:Vec<Vec<i32>>, val: i32, base: i32) -> Result<bool,String> 
     
     // quboの答えが、(val-1)以下でないことを確認
     // val-1となる変数配置があるかを確認、あればvalが最小値ではないのでfalseを返す。
-    println!("Check if not exists x s.t. x^T Q x <= val-1");
+    //println!("Check if not exists x s.t. x^T Q x <= val-1");
 
     let mut num_val2 = Vec::<i32>::new();
     let mut m2 = val - 1 + p;
@@ -209,7 +209,7 @@ pub fn chkqubo(input:Vec<Vec<i32>>, val: i32, base: i32) -> Result<bool,String> 
         }
     }
 
-    println!("stlst len, zerop2, num_val2, zeropos2 = {} {} {:?} {:?}", sorter_lst.len(), zerop2, num_val2, zeropos2);
+    //println!("stlst len, zerop2, num_val2, zeropos2 = {} {} {:?} {:?}", sorter_lst.len(), zerop2, num_val2, zeropos2);
 
     vg2 = vargen;
     solver = Solver::new();
@@ -237,111 +237,3 @@ pub fn chkqubo(input:Vec<Vec<i32>>, val: i32, base: i32) -> Result<bool,String> 
     
     return Ok(true);
 }
-
-/*
-pub fn mk_0cons_mod_less(stlst:& Vec<Sorter>, pos: usize, l: usize, base: usize, vargen: &mut usize) -> CnfFormula {
-    let mut h = CnfFormula::new();
-    let mut j = 0;
-
-    let mut vl = Vec::<Lit>::new();
-
-    for m in 0..l {
-        //println!("iter {} in mk mod less",m);
-        j = m;
-        if m == 0 {
-            vl.push(Lit::from_dimacs(-(stlst[pos].output[0] as isize)));
-            j += base;
-            while j < stlst[pos].output.len() {
-                let k1 = j;
-                let k0 = j - 1;
-                let v1 = stlst[pos].output[k1] as isize;
-                let v0 = stlst[pos].output[k0] as isize;
-                let o = (*vargen) as isize;
-                *vargen += 1;
-                vl.push(Lit::from_dimacs(o));
-                //v0 = true, v1 = false,
-                //o = !v1 and v0
-                h.add_clause(&[Lit::from_dimacs(v1), !Lit::from_dimacs(v0), Lit::from_dimacs(o)]);
-                h.add_clause(&[!Lit::from_dimacs(v1), !Lit::from_dimacs(o)]);
-                h.add_clause(&[Lit::from_dimacs(v0), !Lit::from_dimacs(o)]);
-                j += base;
-            }
-            if j == stlst[pos].output.len() {vl.push(Lit::from_dimacs(stlst[pos].output[j - 1] as isize));}
-        } else {
-            while j < stlst[pos].output.len() {
-                let k1 = j;
-                let k0 = j - 1;
-                let v1 = stlst[pos].output[k1] as isize;
-                let v0 = stlst[pos].output[k0] as isize;
-                let o = (*vargen) as isize;
-                *vargen += 1;
-                vl.push(Lit::from_dimacs(o));
-                //v0 = true, v1 = false,
-                //o = !v1 and v0
-                h.add_clause(&[Lit::from_dimacs(v1), !Lit::from_dimacs(v0), Lit::from_dimacs(o)]);
-                h.add_clause(&[!Lit::from_dimacs(v1), !Lit::from_dimacs(o)]);
-                h.add_clause(&[Lit::from_dimacs(v0), !Lit::from_dimacs(o)]);
-                j += base;
-            }
-            if j == stlst[pos].output.len() {vl.push(Lit::from_dimacs(stlst[pos].output[j - 1] as isize));}
-        }
-    }
-    h.add_clause(&vl);
-    //println!("h {:?}", h);
-    return h;
-}
-
-pub fn mk_0cons_mod_not_grt(stlst:& Vec<Sorter>, pos: usize, l: usize, base: usize, vargen: &mut usize) -> CnfFormula {
-    let mut h = CnfFormula::new();
-    let mut j = 0;
-
-    let mut vl = Vec::<Lit>::new();
-
-    for m in l..base {
-        //println!("iter {} in mk mod less",m);
-        j = m;
-        if m == 0 {
-            vl.push(Lit::from_dimacs(-(stlst[pos].output[0] as isize)));
-            j += base;
-            while j < stlst[pos].output.len() {
-                let k1 = j;
-                let k0 = j - 1;
-                let v1 = stlst[pos].output[k1] as isize;
-                let v0 = stlst[pos].output[k0] as isize;
-                let o = (*vargen) as isize;
-                *vargen += 1;
-                vl.push(Lit::from_dimacs(o));
-                //v0 = true, v1 = false,
-                //o = !v1 and v0
-                h.add_clause(&[Lit::from_dimacs(v1), !Lit::from_dimacs(v0), Lit::from_dimacs(o)]);
-                h.add_clause(&[!Lit::from_dimacs(v1), !Lit::from_dimacs(o)]);
-                h.add_clause(&[Lit::from_dimacs(v0), !Lit::from_dimacs(o)]);
-                j += base;
-            }
-            if j == stlst[pos].output.len() {vl.push(Lit::from_dimacs(stlst[pos].output[j - 1] as isize));}
-        } else {
-            while j < stlst[pos].output.len() {
-                let k1 = j;
-                let k0 = j - 1;
-                let v1 = stlst[pos].output[k1] as isize;
-                let v0 = stlst[pos].output[k0] as isize;
-                let o = (*vargen) as isize;
-                *vargen += 1;
-                vl.push(Lit::from_dimacs(o));
-                //v0 = true, v1 = false,
-                //o = !v1 and v0
-                h.add_clause(&[Lit::from_dimacs(v1), !Lit::from_dimacs(v0), Lit::from_dimacs(o)]);
-                h.add_clause(&[!Lit::from_dimacs(v1), !Lit::from_dimacs(o)]);
-                h.add_clause(&[Lit::from_dimacs(v0), !Lit::from_dimacs(o)]);
-                j += base;
-            }
-            if j == stlst[pos].output.len() {vl.push(Lit::from_dimacs(stlst[pos].output[j - 1] as isize));}
-        }
-    }
-    for e in vl.iter() {
-        h.add_clause(&[!(*e)]);
-    }
-    //println!("h {:?}", h);
-    return h;
-}
-*/
