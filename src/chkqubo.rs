@@ -72,6 +72,10 @@ pub fn chkqubo(input:Vec<Vec<i32>>, val: i32, base: i32) -> Result<bool,String> 
     }
     let mut num_val = Vec::<i32>::new();
     let mut m = val + p;
+    // valが小さすぎるため(QUBOの負の係数の和よりもvalが小さい)、valは解ではない。
+    if m < 0 {
+        return Ok(false);
+    }
     //println!("m {}",m);
     if m == 0 {
         num_val.push(0);
@@ -98,7 +102,10 @@ pub fn chkqubo(input:Vec<Vec<i32>>, val: i32, base: i32) -> Result<bool,String> 
 
     let mut solver = Solver::new();
     let mut res;
-    //let mut satmodel = Vec::<Lit>::new();
+
+    // valとなる変数配置があるかを確認(quboの解がval以下かを確認)
+    println!("Check if exists x s.t. x^T Q x <= val");
+
     let mut zerop = 0;
     let mut zeropos = Vec::<Option<usize>>::new();
     let mut vg = 0;
@@ -127,9 +134,8 @@ pub fn chkqubo(input:Vec<Vec<i32>>, val: i32, base: i32) -> Result<bool,String> 
             zeropos.push(Some(num_val[i] as usize));
         }
     }
-    //println!("stlst len, zerop, num_val, zeropos = {} {} {:?} {:?}", sorter_lst.len(), zerop, num_val, zeropos);
+    println!("stlst len, zerop, num_val, zeropos = {} {} {:?} {:?}", sorter_lst.len(), zerop, num_val, zeropos);
 
-    // valとなる変数配置があるかを確認(quboの解がval以下かを確認)
     vg = vargen;
     solver.add_formula(&f);
     solver.add_formula(&mk_0cons(&sorter_lst, zerop));
@@ -148,67 +154,91 @@ pub fn chkqubo(input:Vec<Vec<i32>>, val: i32, base: i32) -> Result<bool,String> 
             res = result,
         Err(msg) => return Err(msg.to_string()),
     }
+    //println!("res = {}", res);
     if !res {
         return Ok(false);
     }
 
     
-    // quboの答えが、valより小さくないか確認
-    // sorter 1個目の出力に0を足してsatを解く
+    // quboの答えが、(val-1)以下でないことを確認
+    // val-1となる変数配置があるかを確認、あればvalが最小値ではないのでfalseを返す。
+    println!("Check if not exists x s.t. x^T Q x <= val-1");
 
-    if zerop < sorter_lst.last().unwrap().output.len() {
-        solver.add_formula(&f);
-        solver.add_formula(&mk_0cons(&sorter_lst, zerop + 1));
-        match solver.solve() {
-            Ok(result) => 
-                res = result,
-            Err(msg) => return Err(msg.to_string()),
-        }
-        if res {
-            return Ok(false);
+    let mut num_val2 = Vec::<i32>::new();
+    let mut m2 = val - 1 + p;
+    // val-1が小さすぎるため(QUBOの負の係数の和よりもval-1が小さい)、val-1は解ではない。
+    if m2 < 0 {
+        return Ok(true);
+    }
+    //println!("m2 {}",m2);
+    if m2 == 0 {
+        num_val2.push(0);
+    } else {
+        while m2 > 0 {
+            num_val2.push(m2 % base);
+            m2 = m2 / base;
         }
     }
 
-    // sorter 2個目以降を調べる
-    
-    for i in 0..(zeropos.len()) {
-        //println!("iter {}", i);
-        solver = Solver::new();
-        solver.add_formula(&f);
-        solver.add_formula(&mk_0cons(&sorter_lst, zerop));
-        vg = vargen;
+    let mut zerop2 = 0;
+    let mut zeropos2 = Vec::<Option<usize>>::new();
+    let mut vg2 = 0;
 
-        for k in 0..i {
-            match zeropos[k] {
-                Some(mk) => {
-                    solver.add_formula(
-                    &mk_0cons_mod(&sorter_lst, sorter_lst.len() - 1 - 1 - k,
-                    mk as usize, base as usize, &mut vg));
-                },
-                None => continue,
-            }
+    if sorter_lst.len() > num_val2.len() {
+        zerop2 = sorter_lst.last().unwrap().output.len();
+        for _i in 0..(sorter_lst.len() - num_val2.len() - 1) {
+            num_val2.push(0);
         }
-
-        if zeropos[i] == None || zeropos[i] == Some(0) {
-            continue;
+    } else if sorter_lst.len() < num_val2.len() {
+        for _i in 0..(num_val2.len() - sorter_lst.len() + 1) {
+            zerop2 *= base as usize;
+            zerop2 += num_val2.pop().unwrap() as usize;
+        }
+        zerop2 = sorter_lst.last().unwrap().output.len() - (zerop2 as usize);
+    } else {
+        zerop2 = sorter_lst.last().unwrap().output.len() - (*(num_val2.last().unwrap()) as usize);
+        num_val2.pop();
+    }
+    num_val2.reverse();
+    // num_val2 左の方の値が、高いbaseに対応
+    for i in 0..(sorter_lst.len()-1) {
+        if sorter_lst[sorter_lst.len() - i - 1 - 1].output.len() == 0 {
+            zeropos2.push(None);
         } else {
-            solver.add_formula(&mk_0cons_mod_not_grt(&sorter_lst, sorter_lst.len() - 1 - 1 - i, 
-                zeropos[i].unwrap() as usize, base as usize, &mut vg));
+            zeropos2.push(Some(num_val2[i] as usize));
         }
-        match solver.solve() {
-            Ok(result) => 
-                res = result,
-            Err(msg) => return Err(msg.to_string()),
+    }
+
+    println!("stlst len, zerop2, num_val2, zeropos2 = {} {} {:?} {:?}", sorter_lst.len(), zerop2, num_val2, zeropos2);
+
+    vg2 = vargen;
+    solver = Solver::new();
+    solver.add_formula(&f);
+    solver.add_formula(&mk_0cons(&sorter_lst, zerop2));
+    for k in 0..(zeropos2.len()) {
+        match zeropos2[k] {
+            Some(mk) => {
+                solver.add_formula(
+                &mk_0cons_mod(&sorter_lst, sorter_lst.len() - 1 - 1 - k,
+                mk as usize, base as usize, &mut vg2));
+            },
+            None => continue,
         }
-        if res {
-            return Ok(false);
-        }
-        
+    }
+    match solver.solve() {
+        Ok(result) => 
+            res = result,
+        Err(msg) => return Err(msg.to_string()),
+    }
+    //println!("res = {}", res);
+    if res {
+        return Ok(false);
     }
     
     return Ok(true);
 }
 
+/*
 pub fn mk_0cons_mod_less(stlst:& Vec<Sorter>, pos: usize, l: usize, base: usize, vargen: &mut usize) -> CnfFormula {
     let mut h = CnfFormula::new();
     let mut j = 0;
@@ -314,3 +344,4 @@ pub fn mk_0cons_mod_not_grt(stlst:& Vec<Sorter>, pos: usize, l: usize, base: usi
     //println!("h {:?}", h);
     return h;
 }
+*/
