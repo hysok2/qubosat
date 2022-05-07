@@ -91,7 +91,7 @@ fn main() {
         match utils::readqubo(filename) {
             Ok(cl) => {
                 //println!("{:?}",cl);
-                match solqubo::solqubo(cl, base) {
+                match solqubo::solqubo(cl, base, true) {
                     Ok(n) => println!("res = {}",n),
                     Err(e) => println!("Error : {}",e),
                 };
@@ -111,7 +111,7 @@ fn main() {
     match utils::readqubo(filename) {
         Ok(cl) => {
             //println!("{:?}",cl);
-            match solqubo::solqubo2(cl, base) {
+            match solqubo::solqubo(cl, base, false) {
                 Ok(n) => println!("res = {}",n),
                 Err(e) => println!("Error : {}",e),
             };
@@ -129,17 +129,17 @@ fn test0() {
         vec![0,0,-1,0,0,0], 
         vec![0,0,0,-1,0,1], 
         vec![0,0,0,0,-1,0], 
-        vec![0,0,0,0,0,-1]],2),Ok(-4));
+        vec![0,0,0,0,0,-1]],2,false),Ok(-4));
 }
 
-fn test1_lst(base : i32) {
-    assert_eq!(solqubo::solqubo(vec![vec![1]],base),Ok(0));
-    assert_eq!(solqubo::solqubo(vec![vec![1,0],vec![0,-10]],base),Ok(-10));
-    assert_eq!(solqubo::solqubo(vec![vec![1,0],vec![-4,1]],base),Ok(-2));
-    assert_eq!(solqubo::solqubo(vec![vec![10,20],vec![-2,3]],base),Ok(0));
-    assert_eq!(solqubo::solqubo(vec![vec![-1000,1],vec![0,-1000]],base),Ok(-1999));
+fn test1_lst(base : i32, t: bool) {
+    assert_eq!(solqubo::solqubo(vec![vec![1]],base,t),Ok(0));
+    assert_eq!(solqubo::solqubo(vec![vec![1,0],vec![0,-10]],base,t),Ok(-10));
+    assert_eq!(solqubo::solqubo(vec![vec![1,0],vec![-4,1]],base,t),Ok(-2));
+    assert_eq!(solqubo::solqubo(vec![vec![10,20],vec![-2,3]],base,t),Ok(0));
+    assert_eq!(solqubo::solqubo(vec![vec![-1000,1],vec![0,-1000]],base,t),Ok(-1999));
     //Problems from Glover et al. Quantum Bridge Analytics I: A Tutorial on Formulating and Using QUBO Models
-    assert_eq!(solqubo::solqubo(vec![vec![-5,2,4,0],vec![2,-3,1,0],vec![4,1,-8,5],vec![0,0,5,-6]],base),Ok(-11));
+    assert_eq!(solqubo::solqubo(vec![vec![-5,2,4,0],vec![2,-3,1,0],vec![4,1,-8,5],vec![0,0,5,-6]],base,t),Ok(-11));
     assert_eq!(solqubo::solqubo(vec![
         vec![-3525, 175, 325, 775, 1050, 425, 525, 250],
         vec![175, -1113, 91, 217, 294, 119, 147, 70],
@@ -149,7 +149,7 @@ fn test1_lst(base : i32) {
         vec![425, 119, 221, 527, 714, -2533, 357, 170],
         vec![525, 147, 273, 651, 882, 357, -3045, 210],
         vec![250, 70, 130, 310, 420, 170, 210, -1560],
-        ],base),Ok(-6889));
+        ],base,t),Ok(-6889));
 }
 
 #[test]
@@ -158,50 +158,70 @@ fn test1() {
 
     for i in li.iter() {
         println!("test with base : {}", *i);
-        test1_lst(*i);
+        test1_lst(*i,true);
     }
         
 }
-/*
+
+#[test]
+fn test1_() {
+    let li : Vec<i32> = vec![2,3,5,10];
+
+    for i in li.iter() {
+        println!("test with base : {}", *i);
+        test1_lst(*i,false);
+    }
+        
+}
+
+fn test2_lst(base : i32) {
+    assert_eq!(chkqubo::chkqubo(vec![vec![1]],0,base),Ok(true));
+    assert_eq!(chkqubo::chkqubo(vec![vec![1,0],vec![0,-10]],-10,base),Ok(true));
+    assert_eq!(chkqubo::chkqubo(vec![vec![1,0],vec![-4,1]],-2,base),Ok(true));
+    assert_eq!(chkqubo::chkqubo(vec![vec![10,20],vec![-2,3]],0,base),Ok(true));
+    //Problems from Glover et al. Quantum Bridge Analytics I: A Tutorial on Formulating and Using QUBO Models
+    assert_eq!(chkqubo::chkqubo(vec![vec![-5,2,4,0],vec![2,-3,1,0],vec![4,1,-8,5],vec![0,0,5,-6]],-11,base),Ok(true));
+    assert_eq!(chkqubo::chkqubo(vec![vec![-5,2,4,0],vec![2,-3,1,0],vec![4,1,-8,5],vec![0,0,5,-6]],-10,base),Ok(false));
+    assert_eq!(chkqubo::chkqubo(vec![vec![-5,2,4,0],vec![2,-3,1,0],vec![4,1,-8,5],vec![0,0,5,-6]],-12,base),Ok(false));
+    assert_eq!(chkqubo::chkqubo(vec![
+        vec![-3525, 175, 325, 775, 1050, 425, 525, 250],
+        vec![175, -1113, 91, 217, 294, 119, 147, 70],
+        vec![325, 91, -1989, 403, 546, 221, 273, 130],
+        vec![775, 217, 403, -4185, 1302, 527, 651, 310],
+        vec![1050, 294, 546, 1302, -5208, 714, 882, 420],
+        vec![425, 119, 221, 527, 714, -2533, 357, 170],
+        vec![525, 147, 273, 651, 882, 357, -3045, 210],
+        vec![250, 70, 130, 310, 420, 170, 210, -1560],
+        ],-6889,base),Ok(true));
+    assert_eq!(chkqubo::chkqubo(vec![
+        vec![-3525, 175, 325, 775, 1050, 425, 525, 250],
+        vec![175, -1113, 91, 217, 294, 119, 147, 70],
+        vec![325, 91, -1989, 403, 546, 221, 273, 130],
+        vec![775, 217, 403, -4185, 1302, 527, 651, 310],
+        vec![1050, 294, 546, 1302, -5208, 714, 882, 420],
+        vec![425, 119, 221, 527, 714, -2533, 357, 170],
+        vec![525, 147, 273, 651, 882, 357, -3045, 210],
+        vec![250, 70, 130, 310, 420, 170, 210, -1560],
+        ],-6890,base),Ok(false));
+    assert_eq!(chkqubo::chkqubo(vec![
+        vec![-3525, 175, 325, 775, 1050, 425, 525, 250],
+        vec![175, -1113, 91, 217, 294, 119, 147, 70],
+        vec![325, 91, -1989, 403, 546, 221, 273, 130],
+        vec![775, 217, 403, -4185, 1302, 527, 651, 310],
+        vec![1050, 294, 546, 1302, -5208, 714, 882, 420],
+        vec![425, 119, 221, 527, 714, -2533, 357, 170],
+        vec![525, 147, 273, 651, 882, 357, -3045, 210],
+        vec![250, 70, 130, 310, 420, 170, 210, -1560],
+        ],-6888,base),Ok(false));
+}
+
 #[test]
 fn test2 () {
-    assert_eq!(chkqubo::chkqubo(vec![vec![1]],0),Ok(true));
-    assert_eq!(chkqubo::chkqubo(vec![vec![1,0],vec![0,-10]],-10),Ok(true));
-    assert_eq!(chkqubo::chkqubo(vec![vec![1,0],vec![-4,1]],-2),Ok(true));
-    assert_eq!(chkqubo::chkqubo(vec![vec![10,20],vec![-2,3]],0),Ok(true));
-    //Problems from Glover et al. Quantum Bridge Analytics I: A Tutorial on Formulating and Using QUBO Models
-    assert_eq!(chkqubo::chkqubo(vec![vec![-5,2,4,0],vec![2,-3,1,0],vec![4,1,-8,5],vec![0,0,5,-6]],-11),Ok(true));
-    assert_eq!(chkqubo::chkqubo(vec![vec![-5,2,4,0],vec![2,-3,1,0],vec![4,1,-8,5],vec![0,0,5,-6]],-10),Ok(false));
-    assert_eq!(chkqubo::chkqubo(vec![vec![-5,2,4,0],vec![2,-3,1,0],vec![4,1,-8,5],vec![0,0,5,-6]],-12),Ok(false));
-    assert_eq!(chkqubo::chkqubo(vec![
-        vec![-3525, 175, 325, 775, 1050, 425, 525, 250],
-        vec![175, -1113, 91, 217, 294, 119, 147, 70],
-        vec![325, 91, -1989, 403, 546, 221, 273, 130],
-        vec![775, 217, 403, -4185, 1302, 527, 651, 310],
-        vec![1050, 294, 546, 1302, -5208, 714, 882, 420],
-        vec![425, 119, 221, 527, 714, -2533, 357, 170],
-        vec![525, 147, 273, 651, 882, 357, -3045, 210],
-        vec![250, 70, 130, 310, 420, 170, 210, -1560],
-        ],-6889),Ok(true));
-    assert_eq!(chkqubo::chkqubo(vec![
-        vec![-3525, 175, 325, 775, 1050, 425, 525, 250],
-        vec![175, -1113, 91, 217, 294, 119, 147, 70],
-        vec![325, 91, -1989, 403, 546, 221, 273, 130],
-        vec![775, 217, 403, -4185, 1302, 527, 651, 310],
-        vec![1050, 294, 546, 1302, -5208, 714, 882, 420],
-        vec![425, 119, 221, 527, 714, -2533, 357, 170],
-        vec![525, 147, 273, 651, 882, 357, -3045, 210],
-        vec![250, 70, 130, 310, 420, 170, 210, -1560],
-        ],-6890),Ok(false));
-    assert_eq!(chkqubo::chkqubo(vec![
-        vec![-3525, 175, 325, 775, 1050, 425, 525, 250],
-        vec![175, -1113, 91, 217, 294, 119, 147, 70],
-        vec![325, 91, -1989, 403, 546, 221, 273, 130],
-        vec![775, 217, 403, -4185, 1302, 527, 651, 310],
-        vec![1050, 294, 546, 1302, -5208, 714, 882, 420],
-        vec![425, 119, 221, 527, 714, -2533, 357, 170],
-        vec![525, 147, 273, 651, 882, 357, -3045, 210],
-        vec![250, 70, 130, 310, 420, 170, 210, -1560],
-        ],-6888),Ok(false));
+
+    let li : Vec<i32> = vec![2,3,5,10];
+
+    for i in li.iter() {
+        println!("test with base : {}", *i);
+        test2_lst(*i);
+    }
 }
-*/
