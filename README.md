@@ -66,6 +66,7 @@ Currently, we have the following results:
     res = false
     ```
     ``` Optimization-mode-with-tabusearch
+    $ cargo run -- -t samples/8.qub
     -----------------------------------------------------------------
     Optimization-mode-with-tabusearch
     The base number is 2
