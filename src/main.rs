@@ -49,7 +49,7 @@ fn main() {
             Ok(cl) => {
                 //println!("{:?}",cl);
                 match chkqubo::chkqubo(cl, c, base) {
-                    Ok(n) => println!("res = {}",n),
+                    Ok(n) => println!("{}",n),
                     Err(e) => println!("Error : {}",e),
                 };
             },
@@ -70,7 +70,7 @@ fn main() {
             Ok(cl) => {
                 //println!("{:?}",cl);
                 match findasgnqubo::findasgnqubo(cl, c, base) {
-                    Ok(n) => println!("res = {}",n),
+                    Ok(n) => println!("{}",n),
                     Err(e) => println!("Error : {}",e),
                 };
             },
@@ -92,7 +92,7 @@ fn main() {
             Ok(cl) => {
                 //println!("{:?}",cl);
                 match solqubo::solqubo(cl, base, true) {
-                    Ok(n) => println!("res = {}",n),
+                    Ok(n) => println!("q = {}",n),
                     Err(e) => println!("Error : {}",e),
                 };
             },
@@ -112,7 +112,7 @@ fn main() {
         Ok(cl) => {
             //println!("{:?}",cl);
             match solqubo::solqubo(cl, base, false) {
-                Ok(n) => println!("res = {}",n),
+                Ok(n) => println!("q = {}",n),
                 Err(e) => println!("Error : {}",e),
             };
         },

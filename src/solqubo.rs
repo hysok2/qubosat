@@ -234,7 +234,7 @@ pub fn solqubo(input:Vec<Vec<i32>>, base: i32, tabu: bool) -> Result<i32,String>
     //println!("N = {:?}",mat_n);
     //println!("sorter_lst {:?}",sorter_lst);
     //println!("zeropos {} {:?}",sorter_lst[sorter_lst.len() - 1].output.len() - zerop, zeropos);
-    print!("model");
+    print!("x =");
     for i in 0..n {
         print!(" {:?}",satmodel[i]);
     }

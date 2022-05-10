@@ -155,7 +155,7 @@ pub fn findasgnqubo(input:Vec<Vec<i32>>, val: i32, base: i32) -> Result<bool,Str
     
     println!("-----result-----");
     satmodel=solver.model().unwrap();
-    print!("model");
+    print!("x =");
     for i in 0..n {
         print!(" {:?}",satmodel[i]);
     }
