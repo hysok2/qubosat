@@ -24,8 +24,8 @@ Currently, we have the following results:
     Output: minimum value q and assignments x s.t. min_x x^T Q x = q
     -----------------------------------------------------------------
     -----result-----
-    model -1 2 3 -4 5 -6 7 -8
-    res = -6889
+    x = -1 2 3 -4 5 -6 7 -8
+    q = -6889
     ```
     ``` Checking-minimality-mode
     $ cargo run -- -c '-6890' samples/8.qub
@@ -35,7 +35,7 @@ Currently, we have the following results:
     Input: an integer matrix Q (defined in samples/8.qub), an integer q = -6890
     Output: true (minimum) or false (not minimum)
     -----------------------------------------------------------------
-    res = false
+    false
     $ cargo run -- -c '-6889' samples/8.qub
     -----------------------------------------------------------------
     Checking-minimality-mode
@@ -43,7 +43,7 @@ Currently, we have the following results:
     Input: an integer matrix Q (defined in samples/8.qub), an integer q = -6889
     Output: true (minimum) or false (not minimum)
     -----------------------------------------------------------------
-    res = true
+    true
     ```
     ``` Finding-assignments-mode
     $ cargo run -- -f '-6889' samples/8.qub
@@ -54,8 +54,8 @@ Currently, we have the following results:
     Output: assignments x s.t. x^T Q x <= q
     -----------------------------------------------------------------
     -----result-----
-    model -1 -2 -3 4 5 -6 -7 8
-    res = true
+    x = -1 -2 -3 4 5 -6 -7 8
+    true
     $ cargo run -- -f '-6890' samples/8.qub
     -----------------------------------------------------------------
     Finding-assignments-mode
@@ -63,7 +63,7 @@ Currently, we have the following results:
     Input: an integer matrix Q (defined in samples/8.qub), an integer q = -6890
     Output: assignments x s.t. x^T Q x <= q
     -----------------------------------------------------------------
-    res = false
+    false
     ```
     ``` Optimization-mode-with-tabusearch
     $ cargo run -- -t samples/8.qub
@@ -74,8 +74,8 @@ Currently, we have the following results:
     Output: minimum value q and assignments x s.t. min_x x^T Q x = q
     -----------------------------------------------------------------
     -----result-----
-    model -1 2 3 -4 5 -6 7 -8
-    res = -6889
+    x = -1 2 3 -4 5 -6 7 -8
+    q = -6889
     ```
     If you want to change the base number, please use -b option.  Changing base number affects the size of the SAT problem that the program produces from the given QUBO problem.  Therefore, chosing an appropriate base number might reduce the size of the SAT problem, and hence the program might solve the problem faster.  Note that chaning the base number does not affect the output of the program.
     ```
@@ -87,8 +87,8 @@ Currently, we have the following results:
     Output: minimum value q and assignments x s.t. min_x x^T Q x = q
     -----------------------------------------------------------------
     -----result-----
-    model 1 2 3 -4 -5 6 7 -8
-    res = -6889
+    x = 1 2 3 -4 -5 6 7 -8
+    q = -6889
     $ cargo run -- -c '-6889' -b 5 samples/8.qub
     -----------------------------------------------------------------
     Checking-minimality-mode
@@ -96,5 +96,5 @@ Currently, we have the following results:
     Input: an integer matrix Q (defined in samples/8.qub), an integer q = -6889
     Output: true (minimum) or false (not minimum)
     -----------------------------------------------------------------
-    res = true
+    true
     ```
