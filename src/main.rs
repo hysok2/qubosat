@@ -2,7 +2,7 @@ use qubosat::solqubo;
 use qubosat::chkqubo;
 use qubosat::findasgnqubo;
 use qubosat::utils;
-use qubosat::tabus;
+//use qubosat::tabus;
 
 use clap::Parser;
 
@@ -32,7 +32,7 @@ struct Args {
 
 
 fn main() {
-    use std::env;
+    //use std::env;
     let arg = Args::parse();
     let filename = arg.qubo_filename;
     let base = arg.base;
@@ -132,7 +132,7 @@ fn test0() {
         vec![0,0,0,0,0,-1]],2,false),Ok(-4));
 }
 
-fn test1_lst(base : i32, t: bool) {
+fn _test1_lst(base : i32, t: bool) {
     assert_eq!(solqubo::solqubo(vec![vec![1]],base,t),Ok(0));
     assert_eq!(solqubo::solqubo(vec![vec![1,0],vec![0,-10]],base,t),Ok(-10));
     assert_eq!(solqubo::solqubo(vec![vec![1,0],vec![-4,1]],base,t),Ok(-2));
@@ -158,7 +158,7 @@ fn test1() {
 
     for i in li.iter() {
         println!("test with base : {}", *i);
-        test1_lst(*i,true);
+        _test1_lst(*i,true);
     }
         
 }
@@ -169,12 +169,12 @@ fn test1_() {
 
     for i in li.iter() {
         println!("test with base : {}", *i);
-        test1_lst(*i,false);
+        _test1_lst(*i,false);
     }
         
 }
 
-fn test2_lst(base : i32) {
+fn _test2_lst(base : i32) {
     assert_eq!(chkqubo::chkqubo(vec![vec![1]],0,base),Ok(true));
     assert_eq!(chkqubo::chkqubo(vec![vec![1,0],vec![0,-10]],-10,base),Ok(true));
     assert_eq!(chkqubo::chkqubo(vec![vec![1,0],vec![-4,1]],-2,base),Ok(true));
@@ -222,6 +222,6 @@ fn test2 () {
 
     for i in li.iter() {
         println!("test with base : {}", *i);
-        test2_lst(*i);
+        _test2_lst(*i);
     }
 }

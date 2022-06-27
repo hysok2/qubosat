@@ -98,11 +98,11 @@ pub fn findasgnqubo(input:Vec<Vec<i32>>, val: i32, base: i32) -> Result<bool,Str
     use varisat::solver::Solver;
 
     let mut solver = Solver::new();
-    let mut res;
-    let mut satmodel = Vec::<Lit>::new();
+    let res;
+    let satmodel;
     let mut zerop = 0;
     let mut zeropos = Vec::<Option<usize>>::new();
-    let mut vg = 0;
+    let mut vg;
 
     if sorter_lst.len() > num_val.len() {
         zerop = sorter_lst.last().unwrap().output.len();
@@ -165,7 +165,7 @@ pub fn findasgnqubo(input:Vec<Vec<i32>>, val: i32, base: i32) -> Result<bool,Str
 
 pub fn mk_0cons_mod_less(stlst:& Vec<Sorter>, pos: usize, l: usize, base: usize, vargen: &mut usize) -> CnfFormula {
     let mut h = CnfFormula::new();
-    let mut j = 0;
+    let mut j;
 
     let mut vl = Vec::<Lit>::new();
 
@@ -217,7 +217,7 @@ pub fn mk_0cons_mod_less(stlst:& Vec<Sorter>, pos: usize, l: usize, base: usize,
 
 pub fn mk_0cons_mod_not_grt(stlst:& Vec<Sorter>, pos: usize, l: usize, base: usize, vargen: &mut usize) -> CnfFormula {
     let mut h = CnfFormula::new();
-    let mut j = 0;
+    let mut j;
 
     let mut vl = Vec::<Lit>::new();
 

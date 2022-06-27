@@ -108,7 +108,7 @@ pub fn chkqubo(input:Vec<Vec<i32>>, val: i32, base: i32) -> Result<bool,String> 
 
     let mut zerop = 0;
     let mut zeropos = Vec::<Option<usize>>::new();
-    let mut vg = 0;
+    let mut vg;
 
     if sorter_lst.len() > num_val.len() {
         zerop = sorter_lst.last().unwrap().output.len();
@@ -182,7 +182,7 @@ pub fn chkqubo(input:Vec<Vec<i32>>, val: i32, base: i32) -> Result<bool,String> 
 
     let mut zerop2 = 0;
     let mut zeropos2 = Vec::<Option<usize>>::new();
-    let mut vg2 = 0;
+    let mut vg2;
 
     if sorter_lst.len() > num_val2.len() {
         zerop2 = sorter_lst.last().unwrap().output.len();

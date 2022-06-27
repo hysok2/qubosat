@@ -1,7 +1,7 @@
 use varisat::{CnfFormula, ExtendFormula};
 use varisat::{Lit};
 
-use std::time::{Duration, Instant};
+use std::time::{Instant};
 use std::cmp;
 
 use crate::tabus;
@@ -80,17 +80,15 @@ pub fn solqubo(input:Vec<Vec<i32>>, base: i32, tabu: bool) -> Result<i32,String>
     // sorter 1個目の出力を上から順に0を制約として入れて、satを解く
     use varisat::solver::Solver;
 
-    let mut zerop = 0;
+    let mut zerop;
     let mut solver = Solver::new();
     let mut res;
-    let mut satmodel = Vec::<Lit>::new();
-
-    let start = Instant::now();
+    let mut satmodel;
 
     // quboの解は0以下なので、0以下から解を探すようにsorter出力への0制約の位置を調整する
     // tabuフラグがtrueのとき、quboの解をtabuサーチで探索し、その解以下から探すようにsorter出力への0制約の位置を調整する
     let mut p_b = Vec::<i32>::new();
-    let mut m = 0;
+    let mut m;
     if tabu {
         m = tabus::ts_qubo(&mat_n,n,10) + p;
     } else {
@@ -122,6 +120,7 @@ pub fn solqubo(input:Vec<Vec<i32>>, base: i32, tabu: bool) -> Result<i32,String>
     //println!("vg {}",vargen);
 
     // 一度satを解き、付値を求める。必ずsatとなる。
+    let start = Instant::now();
     solver.add_formula(&f);
     solver.add_formula(&mk_0cons(&sorter_lst, zerop));
     match solver.solve() {
@@ -132,7 +131,6 @@ pub fn solqubo(input:Vec<Vec<i32>>, base: i32, tabu: bool) -> Result<i32,String>
 
     let end = start.elapsed();
     println!("1st {} {}.{:03}sec", res, end.as_secs(), end.subsec_nanos() / 1_000_000);
-    let start = Instant::now();
 
     // 見つけた付値にあわせてsorter 1個目の出力の0位置を調整する。
     satmodel = solver.model().unwrap();
@@ -146,6 +144,7 @@ pub fn solqubo(input:Vec<Vec<i32>>, base: i32, tabu: bool) -> Result<i32,String>
     // sorter 1個目の出力を順に0を制約として入れて、sorter 1個目の出力の最小を求める。
     while res && zerop < sorter_lst[sorter_lst.len() - 1].output.len() {
         zerop += 1;
+        let start = Instant::now();
         solver = Solver::new();
         solver.add_formula(&f);
         solver.add_formula(&mk_0cons(&sorter_lst, zerop));
@@ -162,7 +161,7 @@ pub fn solqubo(input:Vec<Vec<i32>>, base: i32, tabu: bool) -> Result<i32,String>
 
         let end = start.elapsed();
         println!("1st {} {}.{:03}sec", res, end.as_secs(), end.subsec_nanos() / 1_000_000);
-        let start = Instant::now();
+        
     }
     
     if !res {
@@ -170,7 +169,7 @@ pub fn solqubo(input:Vec<Vec<i32>>, base: i32, tabu: bool) -> Result<i32,String>
     }
 
     //println!("zerop {}", zerop);
-    let mut vg = 0;
+    let mut vg;
 
     //sorter 2個目以降。各sorterの"出力の1の数 % base"をbase-1から0まで調べる。
     // unsatになれば、次のsorterの解析に移る。
@@ -488,7 +487,7 @@ fn sorter_merge(x: &mut Vec<(usize,usize)>, l:usize, h:usize, r:usize) {
 // pos番目のsorterの"出力の1の数 % base"がl未満となるかを表す制約を作る。
 pub fn mk_0cons_mod_less(stlst:& Vec<Sorter>, pos: usize, l: usize, base: usize, vargen: &mut usize) -> CnfFormula {
     let mut h = CnfFormula::new();
-    let mut j = 0;
+    let mut j;
 
     let mut vl = Vec::<Lit>::new();
 
