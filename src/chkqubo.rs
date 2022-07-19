@@ -1,6 +1,8 @@
 use varisat::{CnfFormula, ExtendFormula};
 use varisat::{Lit};
 
+use std::cmp;
+
 use crate::solqubo::*;
 
 pub fn chkqubo(input:Vec<Vec<i32>>, val: i32, base: i32) -> Result<bool,String> {
@@ -15,13 +17,13 @@ pub fn chkqubo(input:Vec<Vec<i32>>, val: i32, base: i32) -> Result<bool,String> 
                 let v = input[i][j];
                 mat_n.push(v);
                 if v < 0 {
-                    p = p - v;
+                    p -= v;
                 }
             } else {
                 let v = input[i][j]+input[j][i];
                 mat_n.push(v);
                 if v < 0 {
-                    p = p - v;
+                    p -= v;
                 }
             }
         }
@@ -65,7 +67,7 @@ pub fn chkqubo(input:Vec<Vec<i32>>, val: i32, base: i32) -> Result<bool,String> 
         } else {
             while m > 0 {
                 tmp.push(m % base);
-                m = m / base;
+                m /= base;
            }
         }
         num_b.push(tmp);
@@ -82,7 +84,7 @@ pub fn chkqubo(input:Vec<Vec<i32>>, val: i32, base: i32) -> Result<bool,String> 
     } else {
         while m > 0 {
             num_val.push(m % base);
-            m = m / base;
+            m /= base;
         }
     }
 
@@ -110,25 +112,30 @@ pub fn chkqubo(input:Vec<Vec<i32>>, val: i32, base: i32) -> Result<bool,String> 
     let mut zeropos = Vec::<Option<usize>>::new();
     let mut vg;
 
-    if sorter_lst.len() > num_val.len() {
-        zerop = sorter_lst.last().unwrap().output.len();
-        for _i in 0..(sorter_lst.len() - num_val.len() - 1) {
-            num_val.push(0);
-        }
-    } else if sorter_lst.len() < num_val.len() {
-        for _i in 0..(num_val.len() - sorter_lst.len() + 1) {
-            zerop *= base as usize;
-            zerop += num_val.pop().unwrap() as usize;
-        }
-        zerop = sorter_lst.last().unwrap().output.len() - (zerop as usize);
-    } else {
-        zerop = sorter_lst.last().unwrap().output.len() - (*(num_val.last().unwrap()) as usize);
-        num_val.pop();
+    match sorter_lst.len().cmp(&num_val.len()) {
+        cmp::Ordering::Greater => {
+            zerop = sorter_lst.last().unwrap().output.len();
+            for _i in 0..(sorter_lst.len() - num_val.len() - 1) {
+                num_val.push(0);
+            }
+        },
+        cmp::Ordering::Less => {
+            for _i in 0..(num_val.len() - sorter_lst.len() + 1) {
+                zerop *= base as usize;
+                zerop += num_val.pop().unwrap() as usize;
+            }
+            zerop = sorter_lst.last().unwrap().output.len() - (zerop as usize);
+        },
+        cmp::Ordering::Equal => {
+            zerop = sorter_lst.last().unwrap().output.len() - (*(num_val.last().unwrap()) as usize);
+            num_val.pop();
+        },
     }
     num_val.reverse();
+
     // num_val 左の方の値が、高いbaseに対応
     for i in 0..(sorter_lst.len()-1) {
-        if sorter_lst[sorter_lst.len() - i - 1 - 1].output.len() == 0 {
+        if sorter_lst[sorter_lst.len() - i - 1 - 1].output.is_empty() {
             zeropos.push(None);
         } else {
             zeropos.push(Some(num_val[i] as usize));
@@ -184,25 +191,30 @@ pub fn chkqubo(input:Vec<Vec<i32>>, val: i32, base: i32) -> Result<bool,String> 
     let mut zeropos2 = Vec::<Option<usize>>::new();
     let mut vg2;
 
-    if sorter_lst.len() > num_val2.len() {
-        zerop2 = sorter_lst.last().unwrap().output.len();
-        for _i in 0..(sorter_lst.len() - num_val2.len() - 1) {
-            num_val2.push(0);
-        }
-    } else if sorter_lst.len() < num_val2.len() {
-        for _i in 0..(num_val2.len() - sorter_lst.len() + 1) {
-            zerop2 *= base as usize;
-            zerop2 += num_val2.pop().unwrap() as usize;
-        }
-        zerop2 = sorter_lst.last().unwrap().output.len() - (zerop2 as usize);
-    } else {
-        zerop2 = sorter_lst.last().unwrap().output.len() - (*(num_val2.last().unwrap()) as usize);
-        num_val2.pop();
+    match sorter_lst.len().cmp(&num_val2.len()){
+        cmp::Ordering::Greater => {
+            zerop2 = sorter_lst.last().unwrap().output.len();
+            for _i in 0..(sorter_lst.len() - num_val2.len() - 1) {
+                num_val2.push(0);
+            }
+        },
+        cmp::Ordering::Less => {
+            for _i in 0..(num_val2.len() - sorter_lst.len() + 1) {
+                zerop2 *= base as usize;
+                zerop2 += num_val2.pop().unwrap() as usize;
+            }
+            zerop2 = sorter_lst.last().unwrap().output.len() - (zerop2 as usize);
+        },
+        cmp::Ordering::Equal => {
+            zerop2 = sorter_lst.last().unwrap().output.len() - (*(num_val2.last().unwrap()) as usize);
+            num_val2.pop();
+        },
     }
     num_val2.reverse();
+    
     // num_val2 左の方の値が、高いbaseに対応
     for i in 0..(sorter_lst.len()-1) {
-        if sorter_lst[sorter_lst.len() - i - 1 - 1].output.len() == 0 {
+        if sorter_lst[sorter_lst.len() - i - 1 - 1].output.is_empty() {
             zeropos2.push(None);
         } else {
             zeropos2.push(Some(num_val2[i] as usize));
@@ -235,5 +247,5 @@ pub fn chkqubo(input:Vec<Vec<i32>>, val: i32, base: i32) -> Result<bool,String> 
         return Ok(false);
     }
     
-    return Ok(true);
+    Ok(true)
 }

@@ -14,7 +14,7 @@ pub fn ts_qubo(mat_n : &Vec<i32>, n : usize, ln : usize) -> i32 {
         for x in 0..n {
             if tt[x]==0 {
                 let mut cn = c.clone();
-                cn[x]=!cn[x];
+                cn[x] = !cn[x];
                 let new_val = cal(&mat_n, n, &cn);
 
                 if new_val < val {
@@ -25,7 +25,7 @@ pub fn ts_qubo(mat_n : &Vec<i32>, n : usize, ln : usize) -> i32 {
         }
 
         tt[pos] = TABU_TIME;
-        c[pos]=!c[pos];
+        c[pos] = !c[pos];
 
         for i in 0..n {
             if tt[i] > 0 {

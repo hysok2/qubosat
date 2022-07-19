@@ -1,6 +1,8 @@
 use varisat::{CnfFormula, ExtendFormula};
 use varisat::{Lit};
 
+use std::cmp;
+
 use crate::solqubo::*;
 
 // val以下となるQUBOの付値を求める
@@ -16,13 +18,13 @@ pub fn findasgnqubo(input:Vec<Vec<i32>>, val: i32, base: i32) -> Result<bool,Str
                 let v = input[i][j];
                 mat_n.push(v);
                 if v < 0 {
-                    p = p - v;
+                    p -= v;
                 }
             } else {
                 let v = input[i][j]+input[j][i];
                 mat_n.push(v);
                 if v < 0 {
-                    p = p - v;
+                    p -= v;
                 }
             }
         }
@@ -66,25 +68,25 @@ pub fn findasgnqubo(input:Vec<Vec<i32>>, val: i32, base: i32) -> Result<bool,Str
         } else {
             while m > 0 {
                 tmp.push(m % base);
-                m = m / base;
+                m /= base;
            }
         }
         num_b.push(tmp);
     }
     let mut num_val = Vec::<i32>::new();
     let mut m = val + p;
-    //println!("m {}",m);
+    println!("m {}",m);
     if m == 0 {
         num_val.push(0);
     } else {
         while m > 0 {
             num_val.push(m % base);
-            m = m / base;
+            m /= base;
         }
     }
 
-    //println!("bum_b {:?}",num_b);
-    //println!("num_val {:?}", num_val);
+    println!("bum_b {:?}",num_b);
+    println!("num_val {:?}", num_val);
 
     //sorter作成
     let mut sorter_lst = Vec::<Sorter>::new();
@@ -104,25 +106,33 @@ pub fn findasgnqubo(input:Vec<Vec<i32>>, val: i32, base: i32) -> Result<bool,Str
     let mut zeropos = Vec::<Option<usize>>::new();
     let mut vg;
 
-    if sorter_lst.len() > num_val.len() {
-        zerop = sorter_lst.last().unwrap().output.len();
-        for _i in 0..(sorter_lst.len() - num_val.len() - 1) {
-            num_val.push(0);
-        }
-    } else if sorter_lst.len() < num_val.len() {
-        for _i in 0..(num_val.len() - sorter_lst.len() + 1) {
-            zerop *= base as usize;
-            zerop += num_val.pop().unwrap() as usize;
-        }
-        zerop = sorter_lst.last().unwrap().output.len() - (zerop as usize);
-    } else {
-        zerop = sorter_lst.last().unwrap().output.len() - (*(num_val.last().unwrap()) as usize);
-        num_val.pop();
+    //println!("sl_length, num_val_length {} {}", sorter_lst.len(), num_val.len());
+
+    match sorter_lst.len().cmp(&num_val.len()){
+        cmp::Ordering::Greater => {
+            zerop = sorter_lst.last().unwrap().output.len();
+            for _i in 0..(sorter_lst.len() - num_val.len() - 1) {
+                num_val.push(0);
+            }
+        },
+        cmp::Ordering::Less => {
+            let mut onep = 0;
+            for _i in 0..(num_val.len() - sorter_lst.len() + 1) {
+                onep *= base as usize;
+                onep += num_val.pop().unwrap() as usize;
+            }
+            zerop = sorter_lst.last().unwrap().output.len() - (onep as usize);
+        },
+        cmp::Ordering::Equal => {
+            zerop = sorter_lst.last().unwrap().output.len() - (*(num_val.last().unwrap()) as usize);
+            num_val.pop();
+        },
     }
+    //println!("sl_length, num_val_length {} {}", sorter_lst.len(), num_val.len());
     num_val.reverse();
     // num_val 左の方の値が、高いbaseに対応
     for i in 0..(sorter_lst.len()-1) {
-        if sorter_lst[sorter_lst.len() - i - 1 - 1].output.len() == 0 {
+        if sorter_lst[sorter_lst.len() - i - 1 - 1].output.is_empty() {
             zeropos.push(None);
         } else {
             zeropos.push(Some(num_val[i] as usize));
@@ -160,9 +170,10 @@ pub fn findasgnqubo(input:Vec<Vec<i32>>, val: i32, base: i32) -> Result<bool,Str
         print!(" {:?}",satmodel[i]);
     }
     println!();
-    return Ok(true);
+    Ok(true)
 }
 
+/*
 pub fn mk_0cons_mod_less(stlst:& Vec<Sorter>, pos: usize, l: usize, base: usize, vargen: &mut usize) -> CnfFormula {
     let mut h = CnfFormula::new();
     let mut j;
@@ -212,7 +223,7 @@ pub fn mk_0cons_mod_less(stlst:& Vec<Sorter>, pos: usize, l: usize, base: usize,
     }
     h.add_clause(&vl);
     //println!("h {:?}", h);
-    return h;
+    h
 }
 
 pub fn mk_0cons_mod_not_grt(stlst:& Vec<Sorter>, pos: usize, l: usize, base: usize, vargen: &mut usize) -> CnfFormula {
@@ -266,5 +277,6 @@ pub fn mk_0cons_mod_not_grt(stlst:& Vec<Sorter>, pos: usize, l: usize, base: usi
         h.add_clause(&[!(*e)]);
     }
     //println!("h {:?}", h);
-    return h;
+    h
 }
+*/

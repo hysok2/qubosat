@@ -27,13 +27,13 @@ pub fn solqubo(input:Vec<Vec<i32>>, base: i32, tabu: bool) -> Result<i32,String>
                 let v = input[i][j];
                 mat_n.push(v);
                 if v < 0 {
-                    p = p - v;
+                    p -= v;
                 }
             } else {
                 let v = input[i][j]+input[j][i];
                 mat_n.push(v);
                 if v < 0 {
-                    p = p - v;
+                    p -= v;
                 }
             }
         }
@@ -61,7 +61,7 @@ pub fn solqubo(input:Vec<Vec<i32>>, base: i32, tabu: bool) -> Result<i32,String>
         } else {
             while m > 0 {
                 tmp.push(m % base);
-                m = m / base;
+                m /= base;
            }
         }
         num_b.push(tmp);
@@ -99,20 +99,20 @@ pub fn solqubo(input:Vec<Vec<i32>>, base: i32, tabu: bool) -> Result<i32,String>
     } else {
         while m > 0 {
             p_b.push(m % base);
-            m = m / base;
+            m /= base;
        }
     }
-    if p_b.len() < sorter_lst.len() {
-        zerop = sorter_lst[sorter_lst.len() - 1].output.len();
-    } else if p_b.len() == sorter_lst.len() {
-        zerop = sorter_lst[sorter_lst.len() - 1].output.len() - (p_b[p_b.len()-1] as usize);
-    } else {
-        let mut tmp = 0;
-        for i in 0..(p_b.len()-sorter_lst.len()+1) {
-            tmp = tmp * base + p_b[p_b.len()-i-1];
-        }
-        zerop = sorter_lst[sorter_lst.len() - 1].output.len() - (tmp as usize);
-    }
+    zerop = match p_b.len().cmp(&sorter_lst.len()) {
+        cmp::Ordering::Less => sorter_lst[sorter_lst.len() - 1].output.len(),
+        cmp::Ordering::Equal => sorter_lst[sorter_lst.len() - 1].output.len() - (p_b[p_b.len()-1] as usize),
+        cmp::Ordering::Greater => {        
+            let mut tmp = 0;
+            for i in 0..(p_b.len()-sorter_lst.len()+1) {
+                tmp = tmp * base + p_b[p_b.len()-i-1];
+            }
+            sorter_lst[sorter_lst.len() - 1].output.len() - (tmp as usize)},
+    };
+
     //println!("p {} p_b {:?} zerop {}", p, p_b, zerop);
     //println!("sl.len {} p_b.len {}", sorter_lst.len(), p_b.len());
     //println!("sl.last.len {}", sorter_lst[sorter_lst.len() - 1].output.len());
@@ -130,7 +130,7 @@ pub fn solqubo(input:Vec<Vec<i32>>, base: i32, tabu: bool) -> Result<i32,String>
     }
 
     let end = start.elapsed();
-    println!("1st {} {}.{:03}sec", res, end.as_secs(), end.subsec_nanos() / 1_000_000);
+    println!("1st {} {}.{:03}sec", res, end.as_secs(), end.subsec_millis());
 
     // 見つけた付値にあわせてsorter 1個目の出力の0位置を調整する。
     satmodel = solver.model().unwrap();
@@ -160,7 +160,7 @@ pub fn solqubo(input:Vec<Vec<i32>>, base: i32, tabu: bool) -> Result<i32,String>
         }
 
         let end = start.elapsed();
-        println!("1st {} {}.{:03}sec", res, end.as_secs(), end.subsec_nanos() / 1_000_000);
+        println!("1st {} {}.{:03}sec", res, end.as_secs(), end.subsec_millis());
         
     }
     
@@ -176,7 +176,7 @@ pub fn solqubo(input:Vec<Vec<i32>>, base: i32, tabu: bool) -> Result<i32,String>
     let mut zeropos = Vec::<Option<usize>>::new();
 
     for i in 1..(sorter_lst.len()) {
-        if sorter_lst[sorter_lst.len() - 1 - i].output.len() == 0 {
+        if sorter_lst[sorter_lst.len() - 1 - i].output.is_empty() {
             zeropos.push(None);
             continue;
         }
@@ -213,7 +213,7 @@ pub fn solqubo(input:Vec<Vec<i32>>, base: i32, tabu: bool) -> Result<i32,String>
             }
 
             let end = start.elapsed();
-            println!("{}th {} {}.{:03}sec", i+1, res, end.as_secs(), end.subsec_nanos() / 1_000_000);
+            println!("{}th {} {}.{:03}sec", i+1, res, end.as_secs(), end.subsec_millis());
 
             if !res {
                 zeropos.push(Some((jj + 1) as usize));
@@ -245,7 +245,7 @@ pub fn solqubo(input:Vec<Vec<i32>>, base: i32, tabu: bool) -> Result<i32,String>
     for i in n..(n + mat_m.len()) {
         //println!("{:?}",satmodel[i]);
         if satmodel[i] == Lit::from_dimacs((i + 1) as isize) {
-            q = q + mat_m[i-n];
+            q += mat_m[i-n];
         } else {
 
         }
@@ -254,7 +254,7 @@ pub fn solqubo(input:Vec<Vec<i32>>, base: i32, tabu: bool) -> Result<i32,String>
     }
     //println!("sorter_lst {:?}",sorter_lst);
     //println!("min val, q, p = {} {} {}",q-p, q, p);
-    return Ok(q-p);
+    Ok(q-p)
 
     //return Ok(0);
 }
@@ -285,7 +285,7 @@ pub fn mk_cons_qv_pbv(f : &mut CnfFormula, n : usize, mat_n : & Vec<i32>) {
 pub fn get_sorterouts(sorter_lst: & Vec<Sorter>, model: & Vec::<Lit>) -> Vec<Option<usize>> {
     let mut ret = Vec::<Option<usize>>::new();
     for i in 0..(sorter_lst.len()) {
-        if sorter_lst[sorter_lst.len() - 1 - i].output.len() == 0 {
+        if sorter_lst[sorter_lst.len() - 1 - i].output.is_empty() {
             ret.push(None);
         } else {
             let mut l = sorter_lst[sorter_lst.len() - 1 - i].output.len();
@@ -299,7 +299,7 @@ pub fn get_sorterouts(sorter_lst: & Vec<Sorter>, model: & Vec::<Lit>) -> Vec<Opt
             ret.push(Some(l));
         }
     }
-    return ret;
+    ret
 }
 
 pub fn mk_sorterlst(sorter_lst: &mut Vec<Sorter>, num_b: &Vec<Vec<i32>>, 
@@ -387,7 +387,7 @@ pub fn mk_0cons(stlst:& Vec<Sorter>, zeropos:usize) -> CnfFormula {
         //println!("{}", sorter_lst[i].output[k]);
     }
     //println!("0 assigns {:?}",h);
-    return h;
+    h
 }
 //sorter2個目以降の解探索時に使う、1個目の出力を埋める関数
 pub fn mk_0cons2(stlst:& Vec<Sorter>, zeropos:usize) -> CnfFormula {
@@ -403,7 +403,7 @@ pub fn mk_0cons2(stlst:& Vec<Sorter>, zeropos:usize) -> CnfFormula {
         h.add_clause(&[Lit::from_dimacs(stlst[stlst.len() - 1].output[k] as isize)]);
     }
     //println!("0 assigns {:?}",h);
-    return h;
+    h
 }
 
 // pos番目のsorterの"出力の1の数 % base"がlとなるかを表す制約を作る。
@@ -454,7 +454,7 @@ pub fn mk_0cons_mod(stlst:& Vec<Sorter>, pos: usize, l: usize, base: usize, varg
         
     }
     //println!("h {:?}", h);
-    return h;
+    h
 }
 
 pub fn mksorter(x: &mut Vec<(usize,usize)>, l: usize, h:usize) {
@@ -534,5 +534,5 @@ pub fn mk_0cons_mod_less(stlst:& Vec<Sorter>, pos: usize, l: usize, base: usize,
     }
     h.add_clause(&vl);
     //println!("h {:?}", h);
-    return h;
+    h
 }
