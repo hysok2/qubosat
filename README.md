@@ -1,7 +1,7 @@
 # [qubosat](https://github.com/hysok2/qubosat)
 
 We will make the prototype of the algorithm which solves Quadratic Unconstrained Binary Optimization problems (QUBO).  Our algorithm finds a solution of QUBO by quering a SAT solver.  We expect that our algorithm have the following benefits.
-1. Our algorithm is precise.  That is, the output of the algorithm is the exact solution of the given QUBO, while heuristic solvers such as tabu search based ones or simulated annealing based ones might output not an exact solution.
+1. Our algorithm is ***precise***.  That is, the output of the algorithm is the exact solution of the given QUBO, while heuristic solvers such as tabu search based ones or simulated annealing based ones might output not an exact solution.
 1. (Hopefully) our algorithm sometimes fast.  Thanks to sophisticated SAT solvers, our algorithm might terminate faster than heuristic solvers that solve QUBO.
 
 Currently, we have the following results:
